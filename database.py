@@ -131,7 +131,7 @@ def get_orders_from_db(status=None):
 
     # Apply status filter if provided
     if status:
-        query = orders_ref.where("status", "==", status)
+        query = orders_ref.where(filter=FieldFilter("status", "==", status))
 
     orders = orders_ref.stream()
     order_list = []
@@ -161,7 +161,7 @@ def get_orders_grouped_by_sku(status=None):
 
     # Apply filter only if status is provided
     if status:
-        orders_ref = orders_ref.where("status", "==", status)
+        orders_ref = orders_ref.where(filter=FieldFilter("status", "==", status))
 
     orders = orders_ref.stream()
 
@@ -275,7 +275,7 @@ def calculate_order_counts():
         return counts
 
     try:
-        orders_ref = db.collection("orders").where("status","in",["new","picked","validated"])
+        orders_ref = db.collection("orders").where(filter=FieldFilter("status","in",["new","picked","validated"]))
         orders = orders_ref.stream()
 
         for order in orders:
@@ -306,7 +306,7 @@ def get_user_productivity():
 
     try:
         # Fetch orders where picked_by is NOT NULL
-        picked_orders = db.collection("orders").where("picked_by", "!=", None).stream()
+        picked_orders = db.collection("orders").where(filter=FieldFilter("picked_by", "!=", None)).stream()
         for order in picked_orders:
             data = order.to_dict()
             user = data.get("picked_by")
@@ -319,7 +319,7 @@ def get_user_productivity():
                 picked_summary[user]["picked_quantity"] += quantity
 
         # Fetch orders where validated_by is NOT NULL
-        validated_orders = db.collection("orders").where("validated_by", "!=", None).stream()
+        validated_orders = db.collection("orders").where(filter=FieldFilter("validated_by", "!=", None)).stream()
         for order in validated_orders:
             data = order.to_dict()
             user = data.get("validated_by")
