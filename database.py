@@ -81,7 +81,8 @@ def add_orders_to_db(orders_df, platform):
             order_id = str(row["order_id"])
             doc_ref = db.collection("orders").document(order_id)
             # Skip if order already exists (check from our local set)
-            if doc_ref.get().exists:
+            doc_snapshot = doc_ref.get()
+            if doc_snapshot.exists:
                 continue
 
             # Add order to batch
