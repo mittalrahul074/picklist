@@ -1,3 +1,6 @@
 streamlit
+firebase-admin
 google-cloud-firestore
 pandas
+openpyxl
+python-dotenv
