@@ -16,14 +16,14 @@ def extract_order_data(file_buffer, platform):
         DataFrame with extracted order data or None on error
     """
     try:
-        # Read file (Use low_memory=False for large CSVs)
+        # Read file
         file_name = file_buffer.name.lower()
         if file_name.endswith('.csv'):
             df = pd.read_csv(file_buffer, low_memory=False)
         else:  
-            df = pd.read_excel(file_buffer, engine='openpyxl')  # Use openpyxl for xlsx files
+            df = pd.read_excel(file_buffer, engine='openpyxl')  
         
-        # ✅ Faster column selection (Avoids creating an empty DataFrame)
+        # Column mappings
         column_map = {
             'meesho': {'order_id': 1, 'sku': 5, 'quantity': 7, 'dispatch_date': 9},
             'flipkart': {'order_id': 3, 'sku': 8, 'quantity': 18, 'dispatch_date': 17}
@@ -34,32 +34,34 @@ def extract_order_data(file_buffer, platform):
             return None
 
         col_idx = column_map[platform]
-        orders_df = df.iloc[:, [col_idx['order_id'], col_idx['sku'], col_idx['quantity']]]
+        orders_df = df.iloc[:, [col_idx['order_id'], col_idx['sku'], col_idx['quantity']]].copy()  # ✅ Use .copy() to avoid warnings
         orders_df.columns = ['order_id', 'sku', 'quantity']
 
-        # ✅ Faster dispatch date handling
+        # ✅ Dispatch Date Fix
         if df.shape[1] > col_idx['dispatch_date']:
-            orders_df['dispatch_date'] = pd.to_datetime(df.iloc[:, col_idx['dispatch_date']], errors='coerce')
+            orders_df.loc[:, 'dispatch_date'] = pd.to_datetime(df.iloc[:, col_idx['dispatch_date']], errors='coerce')
         else:
-            orders_df['dispatch_date'] = datetime.now() + timedelta(days=3)
+            orders_df.loc[:, 'dispatch_date'] = datetime.now() + timedelta(days=3)
 
-        # ✅ Optimized Data Cleaning  
+        # ✅ Drop NaN rows safely
         orders_df.dropna(subset=['order_id', 'sku'], inplace=True)
-        orders_df['quantity'] = pd.to_numeric(orders_df['quantity'], errors='coerce').fillna(1).astype(int)
 
-        # ✅ Convert SKU to uppercase for case-insensitive filtering
-        orders_df['sku'] = orders_df['sku'].str.upper()
+        # ✅ Convert quantity to integer safely
+        orders_df.loc[:, 'quantity'] = pd.to_numeric(orders_df['quantity'], errors='coerce').fillna(1).astype(int)
 
-        # ✅ Optimized Filtering (Vectorized filtering instead of loops)
-        allowed_r_skus = {"R1234", "R5678", "R91011"}  # Use a set for fast lookups
+        # ✅ Convert SKU to uppercase (Fixed Warning)
+        orders_df.loc[:, 'sku'] = orders_df['sku'].str.upper()
+
+        # ✅ Optimized SKU Filtering
+        allowed_r_skus = {"R1234", "R5678", "R91011"}  
         mask = orders_df['sku'].str.startswith(('K', 'L'), na=False) | orders_df['sku'].isin(allowed_r_skus)
-        orders_df = orders_df[mask]
+        orders_df = orders_df.loc[mask].copy()  # ✅ Use .copy() to avoid warnings
 
-        # ✅ Fill missing dispatch dates
-        orders_df['dispatch_date'].fillna(datetime.now() + timedelta(days=3), inplace=True)
+        # ✅ Fill missing dispatch dates safely
+        orders_df.loc[orders_df['dispatch_date'].isna(), 'dispatch_date'] = datetime.now() + timedelta(days=3)
 
-        # ✅ Add status
-        orders_df['status'] = 'new'
+        # ✅ Add status column
+        orders_df.loc[:, 'status'] = 'new'
 
         return orders_df
 
