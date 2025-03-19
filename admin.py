@@ -81,7 +81,7 @@ def render_admin_panel():
         st.subheader("All Orders")
         
         # Load latest data from database
-        orders_df = get_orders_from_db(st.session_state.db_path)
+        orders_df = get_orders_from_db()
         if not orders_df.empty:
             st.dataframe(orders_df)
         else:
