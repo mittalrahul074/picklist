@@ -4,3 +4,5 @@ google-cloud-firestore
 pandas
 openpyxl
 python-dotenv
+google-auth
+google-auth-oauthlib
