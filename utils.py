@@ -6,7 +6,7 @@ from database import get_orders_from_db
 
 def extract_order_data(file_buffer, platform):
     """
-    Extracts order data from Excel or CSV file based on selected platform.
+    Extracts order data from Excel file or CSV file based on selected platform.
     
     Args:
         file_buffer: The uploaded file buffer (Excel or CSV)
@@ -16,52 +16,54 @@ def extract_order_data(file_buffer, platform):
         DataFrame with extracted order data or None on error
     """
     try:
-        # Read file
+        # Determine file type and read accordingly
         file_name = file_buffer.name.lower()
         if file_name.endswith('.csv'):
-            df = pd.read_csv(file_buffer, low_memory=False)
-        else:  
-            df = pd.read_excel(file_buffer, engine='openpyxl')  
-        
-        # Column mappings
-        column_map = {
-            'meesho': {'order_id': 1, 'sku': 5, 'quantity': 7, 'dispatch_date': 9},
-            'flipkart': {'order_id': 3, 'sku': 8, 'quantity': 18, 'dispatch_date': 17}
-        }
-        
-        if platform not in column_map:
+            df = pd.read_csv(file_buffer)
+        else:  # Excel file (.xlsx or .xls)
+            df = pd.read_excel(file_buffer)
+
+        # Extract data based on platform
+        if platform == 'meesho':
+            orders_df = pd.DataFrame({
+                'order_id': df.iloc[:, 1].copy(),   # Column B (index 1)
+                'sku': df.iloc[:, 5].copy(),        # Column F (index 5)
+                'quantity': df.iloc[:, 7].copy(),   # Column H (index 7)
+                'dispatch_date': df.iloc[:, 9].copy() if df.shape[1] > 9 else None
+            })
+        elif platform == 'flipkart':
+            orders_df = pd.DataFrame({
+                'order_id': df.iloc[:, 3].copy(),   # Column D (index 3)
+                'sku': df.iloc[:, 8].copy(),        # Column I (index 8)
+                'quantity': df.iloc[:, 18].copy(),  # Column S (index 18)
+                'dispatch_date': df.iloc[:, 17].copy() if df.shape[1] > 17 else None
+            })
+        else:
             st.error("Invalid platform selected")
             return None
 
-        col_idx = column_map[platform]
-        orders_df = df.iloc[:, [col_idx['order_id'], col_idx['sku'], col_idx['quantity']]].copy()  # ✅ Use .copy() to avoid warnings
-        orders_df.columns = ['order_id', 'sku', 'quantity']
-
-        # ✅ Dispatch Date Fix
-        if df.shape[1] > col_idx['dispatch_date']:
-            orders_df.loc[:, 'dispatch_date'] = pd.to_datetime(df.iloc[:, col_idx['dispatch_date']], errors='coerce')
-        else:
-            orders_df.loc[:, 'dispatch_date'] = datetime.now() + timedelta(days=3)
-
-        # ✅ Drop NaN rows safely
-        orders_df.dropna(subset=['order_id', 'sku'], inplace=True)
-
-        # ✅ Convert quantity to integer safely
-        orders_df.loc[:, 'quantity'] = pd.to_numeric(orders_df['quantity'], errors='coerce').fillna(1).astype(int)
-
-        # ✅ Convert SKU to uppercase (Fixed Warning)
-        orders_df.loc[:, 'sku'] = orders_df['sku'].str.upper()
-
-        # ✅ Optimized SKU Filtering
-        allowed_r_skus = {"R1234", "R5678", "R91011"}  
-        mask = orders_df['sku'].str.startswith(('K', 'L'), na=False) | orders_df['sku'].isin(allowed_r_skus)
-        orders_df = orders_df.loc[mask].copy()  # ✅ Use .copy() to avoid warnings
-
-        # ✅ Fill missing dispatch dates safely
+        # Fill missing dispatch dates with default (3 days from now)
+        orders_df['dispatch_date'] = pd.to_datetime(orders_df['dispatch_date'], errors='coerce')
         orders_df.loc[orders_df['dispatch_date'].isna(), 'dispatch_date'] = datetime.now() + timedelta(days=3)
 
-        # ✅ Add status column
-        orders_df.loc[:, 'status'] = 'new'
+        # Initialize status as 'new'
+        orders_df['status'] = 'new'
+
+        # Drop rows with missing order_id or SKU
+        orders_df.dropna(subset=['order_id', 'sku'], inplace=True)
+
+        # Convert quantity to integer (default 1 if missing)
+        orders_df['quantity'] = pd.to_numeric(orders_df['quantity'], errors='coerce').fillna(1).astype(int)
+
+        # Convert SKUs to uppercase
+        orders_df['sku'] = orders_df['sku'].astype(str).str.upper()
+
+        # Filter SKUs
+        allowed_r_skus = ["R1234", "R5678", "R91011"]
+        orders_df = orders_df[
+            orders_df['sku'].str.startswith(('K', 'L'), na=False) | 
+            orders_df['sku'].isin(allowed_r_skus)
+        ]
 
         return orders_df
 
