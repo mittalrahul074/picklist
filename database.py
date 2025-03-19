@@ -131,7 +131,7 @@ def get_orders_from_db(status=None):
 
     # Apply status filter if provided
     if status:
-        query = orders_ref.where(filter=FieldFilter("status", "==", status))
+        orders_ref = orders_ref.where(filter=FieldFilter("status", "==", status))
 
     orders = orders_ref.stream()
     order_list = []
