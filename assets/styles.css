@@ -1,0 +1,98 @@
+/* Main Styles */
+.stApp {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Swipe Card Styles */
+.swipe-card {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto 20px;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    background-color: #ffffff;
+    transition: transform 0.3s, opacity 0.3s, background-color 0.3s;
+    user-select: none;
+    touch-action: pan-y;
+    cursor: grab;
+}
+
+.card-content {
+    pointer-events: none;
+}
+
+.swipe-actions {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    opacity: 0.5;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.swipe-left {
+    color: #d32f2f;
+    text-align: left;
+}
+
+.swipe-right {
+    color: #2e7d32;
+    text-align: right;
+}
+
+/* Button Styles */
+.stButton button {
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+/* Dashboard Card Styles */
+.css-1r6slb0 {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+/* Status Color Indicators */
+.status-new {
+    color: #FFA726;
+    font-weight: bold;
+}
+
+.status-picked {
+    color: #42A5F5;
+    font-weight: bold;
+}
+
+.status-validated {
+    color: #66BB6A;
+    font-weight: bold;
+}
+
+/* Hide Form Submit Buttons */
+.pick_form .stButton, .validate_form .stButton {
+    display: none;
+}
+
+/* Mobile Optimization */
+@media (max-width: 768px) {
+    .swipe-card {
+        padding: 15px;
+    }
+    
+    .swipe-actions {
+        font-size: 16px;
+    }
+}
