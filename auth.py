@@ -5,7 +5,10 @@ import streamlit as st
 USERS = {
     "admin": "admin123",
     "user1": "user123",
-    "user2": "user234"
+    "user2": "user234",
+    "riki": "riki123",
+    "pihu": "pihu123",
+    "mayank": "mayank123"
 }
 
 def authenticate_user(username, password):
