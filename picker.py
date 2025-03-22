@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from utils import get_swipe_card_html
-from database import get_orders_grouped_by_sku, update_orders_for_sku, calculate_order_counts
+from database import get_orders_grouped_by_sku, update_orders_for_sku, calculate_order_counts,get_orders_from_db
 import time
 
 def render_picker_panel():
