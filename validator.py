@@ -171,6 +171,11 @@ def render_validator_panel():
                 st.session_state.user_role
             )
             
+            if len(sku_groups) > st.session_state.current_index+1:
+                st.session_state.current_index += 1
+            else:
+                st.session_state.current_index = 0
+                
             # Show success message
             if processed_quantity > 0:
                 st.success(f"Validated {processed_quantity} units of {sku}!")

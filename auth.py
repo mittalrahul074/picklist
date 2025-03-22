@@ -27,5 +27,7 @@ def logout_user():
     """Clear the authentication state"""
     st.session_state.authenticated = False
     st.session_state.user_role = None
+    if "orders_df" in st.session_state:
+        del st.session_state["orders_df"]
     if 'page' in st.session_state:
         st.session_state.page = "main"
