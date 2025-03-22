@@ -8,16 +8,15 @@ from validator import render_validator_panel
 from dashboard import render_dashboard
 import utils
 from database import init_database
+from firebase_utils import add_order, get_orders
 
-# App configuration and styling
+# App configuration
 st.set_page_config(
     page_title="Order Management System",
     page_icon="📦",
     layout="wide",
-    initial_sidebar_state="auto"
+    initial_sidebar_state="collapsed"
 )
-
-from firebase_utils import add_order, get_orders
 
 # Load custom CSS
 with open("assets/styles.css") as f:
@@ -25,7 +24,6 @@ with open("assets/styles.css") as f:
 
 # Initialize database
 if 'db_path' not in st.session_state:
-    # Create database file in the current directory
     init_database()
 
 # Initialize session state for authentication
@@ -39,60 +37,8 @@ if 'order_status_count' not in st.session_state:
 # App header
 st.title("Order Management System")
 
-# Sidebar for authentication
+# Sidebar for authentication and navigation
 with st.sidebar:
-    st.header("Login")
-    
-    # if not st.session_state.authenticated:
-    #     username = st.text_input("Username")
-    #     password = st.text_input("Password", type="password")
-    #     login_button = st.button("Login")
-        
-    #     if login_button:
-    #         if authenticate_user(username, password):
-    #             st.session_state.authenticated = True
-    #             st.session_state.user_role = username  # Using username as role for simplicity
-    #             st.success(f"Logged in as {username}")
-    #             st.rerun()
-    #         else:
-    #             st.error("Invalid credentials")
-    # else:
-    #     st.success(f"Logged in as {st.session_state.user_role}")
-    #     if st.button("Logout"):
-    #         logout_user()
-    #         st.rerun()
-    
-    # Display dashboard link if authenticated
-    if st.session_state.authenticated:
-        st.success(f"Logged in as {st.session_state.user_role}")
-        st.markdown("---")
-        st.header("Navigation")
-        if st.button("Dashboard"):
-            st.session_state.page = "dashboard"
-            st.rerun()
-        
-        # Role-specific navigation
-        if st.session_state.user_role == "admin":
-            if st.button("Upload Orders"):
-                st.session_state.page = "main"
-                st.rerun()
-        elif st.session_state.user_role == "user1":
-            if st.button("Pick Orders"):
-                st.session_state.page = "main"
-                st.rerun()
-        elif st.session_state.user_role == "user2":
-            if st.button("Validate Orders"):
-                st.session_state.page = "main"
-                st.rerun()
-
-        if st.button("Logout"):
-            logout_user()
-            st.rerun()
-
-# Main application content
-if not st.session_state.authenticated:
-    st.info("Please log in to access the system.")
-
     st.header("Login")
     
     if not st.session_state.authenticated:
@@ -103,52 +49,48 @@ if not st.session_state.authenticated:
         if login_button:
             if authenticate_user(username, password):
                 st.session_state.authenticated = True
-                st.session_state.user_role = username  # Using username as role for simplicity
+                st.session_state.user_role = username  # Store username instead of role
                 st.success(f"Logged in as {username}")
                 st.rerun()
             else:
                 st.error("Invalid credentials")
     else:
         st.success(f"Logged in as {st.session_state.user_role}")
-        if st.button("Logout"):
-            logout_user()
-            st.rerun()
-    
-    # Display dashboard link if authenticated
-    if st.session_state.authenticated:
+        
+        # Navigation Links (Now accessible to all)
         st.markdown("---")
         st.header("Navigation")
         if st.button("Dashboard"):
             st.session_state.page = "dashboard"
             st.rerun()
+        if st.button("Upload Orders"):
+            st.session_state.page = "admin"
+            st.rerun()
+        if st.button("Pick Orders"):
+            st.session_state.page = "picker"
+            st.rerun()
+        if st.button("Validate Orders"):
+            st.session_state.page = "validator"
+            st.rerun()
         
-        # Role-specific navigation
-        if st.session_state.user_role == "admin":
-            if st.button("Upload Orders"):
-                st.session_state.page = "main"
-                st.rerun()
-        elif st.session_state.user_role == "user1":
-            if st.button("Pick Orders"):
-                st.session_state.page = "main"
-                st.rerun()
-        elif st.session_state.user_role == "user2":
-            if st.button("Validate Orders"):
-                st.session_state.page = "main"
-                st.rerun()
+        if st.button("Logout"):
+            logout_user()
+            st.rerun()
+
+# Ensure user is logged in before rendering pages
+if not st.session_state.authenticated:
+    st.info("Please log in to access the system.")
 else:
-    # Initialize page in session state if not present
+    # Initialize page in session state if not set
     if 'page' not in st.session_state:
-        st.session_state.page = "main"
+        st.session_state.page = "dashboard"
     
-    # Render the appropriate page based on the user role and selected page
+    # Render selected page
     if st.session_state.page == "dashboard":
         render_dashboard()
-    else:
-        if st.session_state.user_role == "admin":
-            render_admin_panel()
-        elif st.session_state.user_role == "user1":
-            render_picker_panel()
-        elif st.session_state.user_role == "user2":
-            render_validator_panel()
-        else:
-            st.error("Unknown user role")
+    elif st.session_state.page == "admin":
+        render_admin_panel()
+    elif st.session_state.page == "picker":
+        render_picker_panel()
+    elif st.session_state.page == "validator":
+        render_validator_panel()
