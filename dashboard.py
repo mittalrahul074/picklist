@@ -134,22 +134,38 @@ def render_dashboard():
             st.info("No orders available")
     
     with tab2:
-        new_orders = orders_df[orders_df['status'] == 'new']
-        if not new_orders.empty:
-            st.dataframe(new_orders, use_container_width=True)
-        else:
+        if orders_df.empty:
             st.info("No new orders available")
+        elif "status" not in orders_df.columns:
+            st.error("⚠️ 'status' column is missing in the dataset!")
+        else:
+            new_orders = orders_df[orders_df['status'] == 'new']
+
+            if not new_orders.empty:
+                st.dataframe(new_orders, use_container_width=True)
+            else:
+                st.info("No new orders available")
     
     with tab3:
-        picked_orders = orders_df[orders_df['status'] == 'picked']
-        if not picked_orders.empty:
-            st.dataframe(picked_orders, use_container_width=True)
+        if orders_df.empty:
+            st.info("No new orders available")
+        elif "status" not in orders_df.columns:
+            st.error("⚠️ 'status' column is missing in the dataset!")
         else:
-            st.info("No picked orders available")
+            picked_orders = orders_df[orders_df['status'] == 'picked']
+            if not picked_orders.empty:
+                st.dataframe(picked_orders, use_container_width=True)
+            else:
+                st.info("No picked orders available")
     
     with tab4:
-        validated_orders = orders_df[orders_df['status'] == 'validated']
-        if not validated_orders.empty:
-            st.dataframe(validated_orders, use_container_width=True)
+        if orders_df.empty:
+            st.info("No new orders available")
+        elif "status" not in orders_df.columns:
+            st.error("⚠️ 'status' column is missing in the dataset!")
         else:
-            st.info("No validated orders available")
+            validated_orders = orders_df[orders_df['status'] == 'validated']
+            if not validated_orders.empty:
+                st.dataframe(validated_orders, use_container_width=True)
+            else:
+                st.info("No validated orders available")
