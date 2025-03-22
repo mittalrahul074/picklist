@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from utils import get_swipe_card_html
-from database import get_orders_grouped_by_sku, update_orders_for_sku, calculate_order_counts
+from database import get_orders_grouped_by_sku, update_orders_for_sku, calculate_order_counts,get_orders_from_db
 import time
 
 def render_validator_panel():
@@ -175,7 +175,7 @@ def render_validator_panel():
                 st.session_state.current_index += 1
             else:
                 st.session_state.current_index = 0
-                
+
             # Show success message
             if processed_quantity > 0:
                 st.success(f"Validated {processed_quantity} units of {sku}!")
