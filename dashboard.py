@@ -5,6 +5,9 @@ from utils import export_orders_to_excel
 from database import get_db_connection,get_orders_from_db, calculate_order_counts, get_user_productivity
 
 def render_dashboard():
+    if "orders_df" not in st.session_state:
+        st.session_state.orders_df = get_orders_from_db()
+    
     """Render the dashboard with order statistics and visualizations"""
     st.session_state.current_index = 0
     st.header("Order Management Dashboard")
@@ -124,28 +127,28 @@ def render_dashboard():
     tab1, tab2, tab3, tab4 = st.tabs(["All Orders", "New Orders", "Picked Orders", "Validated Orders"])
     
     with tab1:
-        orders_df = get_orders_from_db()
+        orders_df = st.session_state.orders_df
         if not orders_df.empty:
             st.dataframe(orders_df, use_container_width=True)
         else:
             st.info("No orders available")
     
     with tab2:
-        new_orders = get_orders_from_db(status='new')
+        new_orders = orders_df[orders_df['status'] == 'new']
         if not new_orders.empty:
             st.dataframe(new_orders, use_container_width=True)
         else:
             st.info("No new orders available")
     
     with tab3:
-        picked_orders = get_orders_from_db(status='picked')
+        picked_orders = orders_df[orders_df['status'] == 'picked']
         if not picked_orders.empty:
             st.dataframe(picked_orders, use_container_width=True)
         else:
             st.info("No picked orders available")
     
     with tab4:
-        validated_orders = get_orders_from_db(status='validated')
+        validated_orders = orders_df[orders_df['status'] == 'validated']
         if not validated_orders.empty:
             st.dataframe(validated_orders, use_container_width=True)
         else:

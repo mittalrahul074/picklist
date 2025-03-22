@@ -5,6 +5,10 @@ from utils import extract_order_data, export_orders_to_excel
 from database import add_orders_to_db, get_orders_from_db, calculate_order_counts
 
 def render_admin_panel():
+
+    if "orders_df" not in st.session_state:
+        st.session_state.orders_df = get_orders_from_db()
+    
     """Render the admin panel for uploading Excel or CSV files"""
     st.header("Admin Panel - Order Upload")
     
@@ -42,7 +46,7 @@ def render_admin_panel():
                         # Show preview of all orders
                         with st.expander("Preview Processed Data"):
                             # Get latest data from database
-                            preview_df = get_orders_from_db()
+                            preview_df = st.session_state.orders_df
                             st.dataframe(preview_df.head(10))
                     else:
                         st.error("Failed to add orders to database")
@@ -81,7 +85,7 @@ def render_admin_panel():
         st.subheader("All Orders")
         
         # Load latest data from database
-        orders_df = get_orders_from_db()
+        orders_df = st.session_state.orders_df
         if not orders_df.empty:
             st.dataframe(orders_df)
         else:

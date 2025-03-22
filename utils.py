@@ -128,6 +128,8 @@ def get_swipe_card_html(order_data, action_type):
     return html
 
 def export_orders_to_excel():
+    if "orders_df" not in st.session_state:
+        st.session_state.orders_df = get_orders_from_db()
     """
     Export orders to Excel file for download
     
@@ -138,7 +140,7 @@ def export_orders_to_excel():
         Excel file as bytes or None if no orders exist
     """
     # Get latest orders from database
-    orders_df = get_orders_from_db()
+    orders_df = st.session_state.orders_df
     
     if orders_df.empty:
         return None

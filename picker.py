@@ -7,12 +7,17 @@ import time
 def render_picker_panel():
     """Render the picker panel for User1 to pick orders"""
     st.header("Order Picking")
+
+    if "orders_df" not in st.session_state:
+        st.session_state.orders_df = get_orders_from_db()  # Fetch only once
     
-    # Get orders grouped by SKU
-    sku_groups = get_orders_grouped_by_sku(status='new')
+    if "sku_groups" not in st.session_state:
+        st.session_state.sku_groups = get_orders_grouped_by_sku(st.session_state.orders_df, status='new')
 
     if "current_index" not in st.session_state:
         st.session_state.current_index = 0
+        
+    sku_groups = st.session_state.sku_groups
     
     if sku_groups.empty:
         st.info("No orders available to pick. Please wait for the admin to upload orders.")
