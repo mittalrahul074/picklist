@@ -8,8 +8,14 @@ def render_validator_panel():
     """Render the validator panel for User2 to validate picked orders"""
     st.header("Order Validation")
     
+    if "orders_df" not in st.session_state:
+        st.session_state.orders_df = get_orders_from_db()  # Fetch only once
+    
+    if "sku_groups" not in st.session_state:
+        st.session_state.sku_groups = get_orders_grouped_by_sku(st.session_state.orders_df, status='picked')
+
+    sku_groups = st.session_state.sku_groups
     # Get picked orders grouped by SKU
-    sku_groups = get_orders_grouped_by_sku( status='picked')
 
     if "current_index" not in st.session_state:
         st.session_state.current_index = 0

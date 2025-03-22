@@ -1,14 +1,19 @@
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
+from google.cloud.firestore import FieldFilter
 import json
 import os
+import traceback
 
 from firebase_utils import add_order
+from google.cloud.firestore import FieldFilter
 
 def get_db_connection():
+    print("🔥 Database accessed from:")
+    traceback.print_stack(limit=3)
     try:
         firebase_credentials = dict(st.secrets["firebase"])  # Convert secrets to dict
 
@@ -32,30 +37,30 @@ def init_database():
     Args:
         db_path: Path to create the database file
     """
-    engine = get_db_connection()
-    if engine is None:
-        print("Database connection failed.")
-        return
-    try:
-        with engine.begin() as conn:
-            conn.execute(text('''
-                CREATE TABLE IF NOT EXISTS orders (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    order_id VARCHAR(255) NOT NULL UNIQUE,
-                    sku VARCHAR(255) NOT NULL,
-                    quantity INT NOT NULL,
-                    status VARCHAR(50) NOT NULL DEFAULT 'new',
-                    picked_by VARCHAR(255),
-                    validated_by VARCHAR(255),
-                    platform VARCHAR(255),
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                    dispatch_date DATETIME NOT NULL
-                )
-            '''))
-            conn.commit()
-    except Exception as e:
-        print(f"1Error initializing database: {e}")
+    # engine = get_db_connection()
+    # if engine is None:
+    #     print("Database connection failed.")
+    #     return
+    # try:
+    #     with engine.begin() as conn:
+    #         conn.execute(text('''
+    #             CREATE TABLE IF NOT EXISTS orders (
+    #                 id INT AUTO_INCREMENT PRIMARY KEY,
+    #                 order_id VARCHAR(255) NOT NULL UNIQUE,
+    #                 sku VARCHAR(255) NOT NULL,
+    #                 quantity INT NOT NULL,
+    #                 status VARCHAR(50) NOT NULL DEFAULT 'new',
+    #                 picked_by VARCHAR(255),
+    #                 validated_by VARCHAR(255),
+    #                 platform VARCHAR(255),
+    #                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    #                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    #                 dispatch_date DATETIME NOT NULL
+    #             )
+    #         '''))
+    #         conn.commit()
+    # except Exception as e:
+    #     print(f"1Error initializing database: {e}")
 
 def add_orders_to_db(orders_df, platform):
     """
@@ -107,6 +112,8 @@ def add_orders_to_db(orders_df, platform):
         # Commit any remaining writes
         batch.commit()
 
+        st.session_state.orders_df = get_orders_from_db()
+
         return True, added_count  # Return count of successfully inserted orders
 
     except Exception as e:
@@ -129,9 +136,13 @@ def get_orders_from_db(status=None):
     db = get_db_connection()
     orders_ref = db.collection("orders")
 
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+
+    query = orders_ref.where(filter=FieldFilter("created_at", ">=", seven_days_ago))
+
     # Apply status filter if provided
     if status:
-        orders_ref = orders_ref.where(filter=FieldFilter("status", "==", status))
+        query = orders_ref.where(filter=FieldFilter("status", "==", status))
 
     orders = orders_ref.stream()
     order_list = []
@@ -143,7 +154,7 @@ def get_orders_from_db(status=None):
 
     return pd.DataFrame(order_list)  if order_list else pd.DataFrame()
 
-def get_orders_grouped_by_sku(status=None):
+def get_orders_grouped_by_sku(orders_df, status=None):
     """
     Get orders from database grouped by SKU
     
@@ -155,45 +166,26 @@ def get_orders_grouped_by_sku(status=None):
     - order_ids: List of order IDs for this SKU
     """
     # Get all relevant orders
-    db = get_db_connection()
+    if orders_df.empty:
+        return pd.DataFrame()  # Return empty DataFrame if no data
 
-    orders_ref = db.collection("orders")
-
-    # Apply filter only if status is provided
+    # Filter by status if provided
     if status:
-        orders_ref = orders_ref.where(filter=FieldFilter("status", "==", status))
+        orders_df = orders_df[orders_df["status"] == status]
 
-    orders = orders_ref.stream()
+    # Convert dispatch_date to datetime
+    orders_df = orders_df.copy()
+    orders_df["dispatch_date"] = pd.to_datetime(orders_df["dispatch_date"], errors="coerce")
 
-    sku_data = {}
+    # Group data by SKU
+    grouped_df = orders_df.groupby("sku").agg(
+        total_quantity=pd.NamedAgg(column="quantity", aggfunc="sum"),
+        order_count=pd.NamedAgg(column="order_id", aggfunc="count"),
+        earliest_dispatch_date=pd.NamedAgg(column="dispatch_date", aggfunc="min"),
+        order_ids=pd.NamedAgg(column="order_id", aggfunc=lambda x: list(x))
+    ).reset_index()
 
-    for order in orders:
-        order_data = order.to_dict()
-        order_id = order.id  # Firestore document ID
-        sku = order_data.get("sku")
-        quantity = order_data.get("quantity", 0)
-        dispatch_date = order_data.get("dispatch_date")
-
-        if sku not in sku_data:
-            sku_data[sku] = {
-                "sku": sku,
-                "total_quantity": 0,
-                "order_count": 0,
-                "earliest_dispatch_date": dispatch_date,
-                "order_ids": [],
-            }
-
-        sku_data[sku]["total_quantity"] += quantity
-        sku_data[sku]["order_count"] += 1
-        sku_data[sku]["order_ids"].append(order_id)
-
-        # Update earliest dispatch date
-        if sku_data[sku]["earliest_dispatch_date"] is None or (
-            dispatch_date and dispatch_date < sku_data[sku]["earliest_dispatch_date"]
-        ):
-            sku_data[sku]["earliest_dispatch_date"] = dispatch_date
-
-    return pd.DataFrame(sku_data.values())
+    return grouped_df
 
 def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
     """
@@ -258,6 +250,15 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
 
     batch.commit()
 
+    if "orders_df" in st.session_state:
+        df = st.session_state.orders_df.copy()
+
+        # Update status in DataFrame for processed orders
+        df.loc[df["order_id"].isin(processed_order_ids), "status"] = new_status
+
+        # Save updated DataFrame back to session state
+        st.session_state.orders_df = df
+
     return processed_quantity, processed_order_ids
 
 def calculate_order_counts():
@@ -269,23 +270,17 @@ def calculate_order_counts():
     """
     counts = {'new': 0, 'picked': 0, 'validated': 0}
 
-    db = get_db_connection()
+    if "orders_df" not in st.session_state:
+        st.session_state.orders_df = get_orders_from_db()
 
-    if db is None:
-        return counts
+    orders_df = st.session_state.orders_df  # Get the cached orders DataFrame
 
-    try:
-        orders_ref = db.collection("orders").where(filter=FieldFilter("status","in",["new","picked","validated"]))
-        orders = orders_ref.stream()
-
-        for order in orders:
-            order_data = order.to_dict()
-            status = order_data.get("status")
-            if status in counts:
-                counts[status] += 1
-
-    except Exception as e:
-        print(f"Error fetching order counts: {e}")
+    if not orders_df.empty:
+        counts = orders_df["status"].value_counts().to_dict()  # Count occurrences of each status
+    
+    # Ensure all statuses are included (even if 0)
+    for status in ["new", "picked", "validated"]:
+        counts.setdefault(status, 0)
 
     return counts
 
@@ -296,58 +291,34 @@ def get_user_productivity():
     Returns:
         DataFrame with user productivity data
     """
-    db = get_db_connection()
-    if db is None:
+    if "orders_df" not in st.session_state or st.session_state.orders_df.empty:
         return pd.DataFrame(columns=['user', 'picked_count', 'picked_quantity', 'validated_count', 'validated_quantity'])
 
-    # Initialize dictionaries for aggregation
-    picked_summary = {}
-    validated_summary = {}
+    orders_df = st.session_state.orders_df
 
-    try:
-        # Fetch orders where picked_by is NOT NULL
-        picked_orders = db.collection("orders").where(filter=FieldFilter("picked_by", "!=", None)).stream()
-        for order in picked_orders:
-            data = order.to_dict()
-            user = data.get("picked_by")
-            quantity = data.get("quantity", 0)
+    # Filter and group data for picked orders
+    picked_summary = (
+        orders_df[orders_df["picked_by"].notna()]
+        .groupby("picked_by")
+        .agg(picked_count=("picked_by", "count"), picked_quantity=("quantity", "sum"))
+        .reset_index()
+        .rename(columns={"picked_by": "user"})
+    )
 
-            if user:
-                if user not in picked_summary:
-                    picked_summary[user] = {"picked_count": 0, "picked_quantity": 0}
-                picked_summary[user]["picked_count"] += 1
-                picked_summary[user]["picked_quantity"] += quantity
+    # Filter and group data for validated orders
+    validated_summary = (
+        orders_df[orders_df["validated_by"].notna()]
+        .groupby("validated_by")
+        .agg(validated_count=("validated_by", "count"), validated_quantity=("quantity", "sum"))
+        .reset_index()
+        .rename(columns={"validated_by": "user"})
+    )
 
-        # Fetch orders where validated_by is NOT NULL
-        validated_orders = db.collection("orders").where(filter=FieldFilter("validated_by", "!=", None)).stream()
-        for order in validated_orders:
-            data = order.to_dict()
-            user = data.get("validated_by")
-            quantity = data.get("quantity", 0)
+    # Merge both summaries
+    productivity_df = pd.merge(picked_summary, validated_summary, on="user", how="outer").fillna(0)
 
-            if user:
-                if user not in validated_summary:
-                    validated_summary[user] = {"validated_count": 0, "validated_quantity": 0}
-                validated_summary[user]["validated_count"] += 1
-                validated_summary[user]["validated_quantity"] += quantity
-
-        # Merge picked and validated data
-        all_users = set(picked_summary.keys()).union(set(validated_summary.keys()))
-        data = []
-        for user in all_users:
-            data.append({
-                "user": user,
-                "picked_count": picked_summary.get(user, {}).get("picked_count", 0),
-                "picked_quantity": picked_summary.get(user, {}).get("picked_quantity", 0),
-                "validated_count": validated_summary.get(user, {}).get("validated_count", 0),
-                "validated_quantity": validated_summary.get(user, {}).get("validated_quantity", 0),
-            })
-
-        # Convert to DataFrame
-        productivity_df = pd.DataFrame(data)
-
-    except Exception as e:
-        print(f"Error fetching user productivity: {e}")
-        return pd.DataFrame(columns=['user', 'picked_count', 'picked_quantity', 'validated_count', 'validated_quantity'])
+    # Convert count/quantity columns to integer type
+    for col in ["picked_count", "picked_quantity", "validated_count", "validated_quantity"]:
+        productivity_df[col] = productivity_df[col].astype(int)
 
     return productivity_df
