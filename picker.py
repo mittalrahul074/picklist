@@ -11,8 +11,8 @@ def render_picker_panel():
     if "orders_df" not in st.session_state:
         st.session_state.orders_df = get_orders_from_db()  # Fetch only once
     
-    if "sku_groups" not in st.session_state:
-        st.session_state.sku_groups = get_orders_grouped_by_sku(st.session_state.orders_df, status='new')
+    # if "sku_groups" not in st.session_state:
+    st.session_state.sku_groups = get_orders_grouped_by_sku(st.session_state.orders_df, status='new')
 
     if "current_index" not in st.session_state:
         st.session_state.current_index = 0
