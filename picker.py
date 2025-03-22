@@ -159,6 +159,11 @@ def render_picker_panel():
             # Show success message
             if processed_quantity > 0:
                 st.success(f"Picked {processed_quantity} units of {sku}!")
+
+            if len(sku_groups) > st.session_state.current_index+1:
+                st.session_state.current_index += 1
+            else:
+                st.session_state.current_index = 0
             
             time.sleep(0.5)  # Brief delay for better UX
             st.rerun()
