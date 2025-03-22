@@ -12,7 +12,8 @@ def render_validator_panel():
         st.session_state.orders_df = get_orders_from_db()  # Fetch only once
     
     if "sku_groups" not in st.session_state:
-        st.session_state.sku_groups = get_orders_grouped_by_sku(st.session_state.orders_df, status='picked')
+        picked_orders_df = st.session_state.orders_df[st.session_state.orders_df["status"] == "picked"]
+        st.session_state.sku_groups = get_orders_grouped_by_sku(picked_orders_df, status='picked')
 
     sku_groups = st.session_state.sku_groups
     # Get picked orders grouped by SKU
