@@ -25,7 +25,7 @@ def extract_order_data(file_buffer, platform):
 
         # Extract data based on platform
         if platform == 'meesho':
-            df = df[df.iloc[:, 0].str.lower() != 'shipped']
+            df = df[~df.iloc[:, 0].str.lower().isin(['shipped', 'cancelled'])]
             orders_df = pd.DataFrame({
                 'order_id': df.iloc[:, 1].copy(),   # Column B (index 1)
                 'sku': df.iloc[:, 5].copy(),        # Column F (index 5)
