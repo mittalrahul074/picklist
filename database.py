@@ -256,6 +256,11 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
         # Update status in DataFrame for processed orders
         df.loc[df["order_id"].isin(processed_order_ids), "status"] = new_status
 
+        if new_status == "picked" and user:
+            df.loc[df["order_id"].isin(processed_order_ids), "picked_by"] = user
+        elif new_status == "validated" and user:
+            df.loc[df["order_id"].isin(processed_order_ids), "validated_by"] = user
+
         # Save updated DataFrame back to session state
         st.session_state.orders_df = df
 
