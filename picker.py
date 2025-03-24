@@ -1,13 +1,8 @@
 import streamlit as st
 import pandas as pd
-from utils import get_swipe_card_html
+from utils import get_swipe_card_html,next_sku
 from database import get_orders_grouped_by_sku, update_orders_for_sku, calculate_order_counts,get_orders_from_db
 import time
-
-def next_sku():
-    st.session_state.current_index += 1
-    if st.session_state.current_index >= len(st.session_state.sku_groups):
-        st.session_state.current_index = 0
 
 def pick_sku():
     """Mark the SKU as picked and move to next"""
@@ -35,13 +30,16 @@ def render_picker_panel():
     if "orders_df" not in st.session_state:
         st.session_state.orders_df = get_orders_from_db()  # Fetch only once
 
-    if "sku_groups" not in st.session_state:
-        st.session_state.sku_groups = get_orders_grouped_by_sku(st.session_state.orders_df, status='new')
+    st.session_state.sku_groups = get_orders_grouped_by_sku(st.session_state.orders_df, status='new')
+
+    sku_groups = st.session_state.sku_groups
+
+    st.subheader(f"{len(sku_groups)} SKUs to Pick")
 
     if "current_index" not in st.session_state:
         st.session_state.current_index = 0  # Ensure index is initialized
-
-    sku_groups = st.session_state.sku_groups
+    elif st.session_state.current_index+1>len(sku_groups):
+        st.session_state.current_index = 0
 
     if sku_groups.empty:
         st.info("No orders available to pick. Please wait for the admin to upload orders.")
@@ -80,7 +78,7 @@ def render_picker_panel():
         max_value=int(total_quantity), 
         value=int(total_quantity)
     )
-
+    print(pick_quantity)
     if st.button("Pick Adjusted Quantity", use_container_width=True):
         processed_quantity, processed_order_ids = update_orders_for_sku(
             sku, 
@@ -94,3 +92,4 @@ def render_picker_panel():
 
         time.sleep(0.5)
         next_sku()
+        st.rerun()
