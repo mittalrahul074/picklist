@@ -214,57 +214,41 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
     orders_ref = db.collection("orders") \
                .where(filter=firestore.FieldFilter("sku", "==", sku)) \
                .where(filter=firestore.FieldFilter("status", "==", old_status)) \
-               .order_by("dispatch_date").stream()
+               .order_by("dispatch_date").limit(quantity_to_process)
 
-    remaining_quantity = quantity_to_process
-    processed_order_ids = []
-    processed_quantity = 0
+    orders = list(orders_ref.stream())
+
+    if not orders:
+        return 0, []
+
+    processed_order_ids = [order.id for order in orders]
 
     batch = db.batch()
 
-    for order in orders_ref:
-        order_data = order.to_dict()
-        order_id = order.id
-        order_quantity = order_data["quantity"]
-
-        # Determine how much of this order to process
-        processed_now = min(order_quantity, remaining_quantity)
-
-        order_ref = db.collection("orders").document(order_id)
+    for order in orders:
+        order_ref = db.collection("orders").document(order.id)
         # Prepare update data
         update_data = {
             "status": new_status,
             "updated_at": datetime.utcnow()
         }
 
-        if new_status == "picked" and user:
-            update_data["picked_by"] = user
-        elif new_status == "validated" and user:
-            update_data["validated_by"] = user
+        if user:
+            update_data[f"{new_status}_by"] = user
 
         batch.update(order.reference, update_data)
-
-        remaining_quantity -= processed_now
-        processed_quantity += processed_now
-        processed_order_ids.append(order_id)
 
     batch.commit()
 
     if "orders_df" in st.session_state:
-        df = st.session_state.orders_df.copy()
+        df = st.session_state.orders_df
+        mask = df["order_id"].isin(processed_order_ids)
+        df.loc[mask, "status"] = new_status
+        if user:
+            df.loc[mask, f"{new_status}_by"] = user
+        st.session_state.orders_df = df  # Save changes back to session state
 
-        # Update status in DataFrame for processed orders
-        df.loc[df["order_id"].isin(processed_order_ids), "status"] = new_status
-
-        if new_status == "picked" and user:
-            df.loc[df["order_id"].isin(processed_order_ids), "picked_by"] = user
-        elif new_status == "validated" and user:
-            df.loc[df["order_id"].isin(processed_order_ids), "validated_by"] = user
-
-        # Save updated DataFrame back to session state
-        st.session_state.orders_df = df
-
-    return processed_quantity, processed_order_ids
+    return len(processed_order_ids), processed_order_ids
 
 def calculate_order_counts():
     """

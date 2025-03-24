@@ -4,6 +4,11 @@ import io
 from datetime import datetime, timedelta
 from database import get_orders_from_db
 
+def next_sku():
+    st.session_state.current_index += 1
+    if st.session_state.current_index >= len(st.session_state.sku_groups):
+        st.session_state.current_index = 0
+
 def extract_order_data(file_buffer, platform):
     """
     Extracts order data from Excel file or CSV file based on selected platform.
