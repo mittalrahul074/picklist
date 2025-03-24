@@ -5,12 +5,9 @@ from database import get_orders_grouped_by_sku, update_orders_for_sku, calculate
 import time
 
 def next_sku():
-    """Move to the next SKU."""
-    if len(st.session_state.sku_groups) > st.session_state.current_index + 1:
-        st.session_state.current_index += 1
-    else:
-        st.session_state.current_index = 0  # Loop back to start
-    st.rerun()  # Force rerun after updating session state
+    st.session_state.current_index += 1
+    if st.session_state.current_index >= len(st.session_state.sku_groups):
+        st.session_state.current_index = 0
 
 def pick_sku():
     """Mark the SKU as picked and move to next"""
