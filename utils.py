@@ -65,7 +65,7 @@ def extract_order_data(file_buffer, platform):
         orders_df['sku'] = orders_df['sku'].astype(str).str.upper()
 
         # Filter SKUs
-        allowed_r_skus = ["R1234", "R5678", "R91011"]
+        allowed_r_skus = ["marathi nath", "R5678", "R91011"]
         orders_df = orders_df[
             orders_df['sku'].str.startswith(('K', 'L'), na=False) | 
             orders_df['sku'].isin(allowed_r_skus)
