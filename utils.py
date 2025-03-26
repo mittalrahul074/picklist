@@ -35,22 +35,27 @@ def extract_order_data(file_buffer, platform):
                 'order_id': df.iloc[:, 1].copy(),   # Column B (index 1)
                 'sku': df.iloc[:, 5].copy(),        # Column F (index 5)
                 'quantity': df.iloc[:, 7].copy(),   # Column H (index 7)
-                'dispatch_date': df.iloc[:, 9].copy() if df.shape[1] > 9 else None
+                'dispatch_date': df.iloc[:, 2].copy()
             })
+            print("Raw dispatch date values before conversion:", orders_df['dispatch_date'].head())
+
+            orders_df['dispatch_date'] = pd.to_datetime(orders_df['dispatch_date'], dayfirst=True, errors='coerce') + timedelta(days=2)
+
         elif platform == 'flipkart':
             orders_df = pd.DataFrame({
                 'order_id': df.iloc[:, 3].copy(),   # Column D (index 3)
                 'sku': df.iloc[:, 8].copy(),        # Column I (index 8)
                 'quantity': df.iloc[:, 18].copy(),  # Column S (index 18)
-                'dispatch_date': df.iloc[:, 17].copy() if df.shape[1] > 17 else None
+                'dispatch_date': df.iloc[:, 28].copy()
             })
+            orders_df['dispatch_date'] = orders_df['dispatch_date'].astype(str)
+            orders_df['dispatch_date'] = pd.to_datetime(orders_df['dispatch_date'], format="%b %d, %Y %H:%M:%S", errors='coerce')
         else:
             st.error("Invalid platform selected")
             return None
 
-        # Fill missing dispatch dates with default (3 days from now)
-        orders_df['dispatch_date'] = pd.to_datetime(orders_df['dispatch_date'], errors='coerce')
-        orders_df.loc[orders_df['dispatch_date'].isna(), 'dispatch_date'] = datetime.now() + timedelta(days=3)
+        orders_df['dispatch_date'] = orders_df['dispatch_date'].dt.strftime("%Y-%m-%d")
+        print("Dispatch date after conversion:", orders_df['dispatch_date'].head())
 
         # Initialize status as 'new'
         orders_df['status'] = 'new'
