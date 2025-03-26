@@ -12,13 +12,7 @@ def next_sku():
 def extract_order_data(file_buffer, platform):
     """
     Extracts order data from Excel file or CSV file based on selected platform.
-    
-    Args:
-        file_buffer: The uploaded file buffer (Excel or CSV)
-        platform: Either 'flipkart' or 'meesho'
-    
-    Returns:
-        DataFrame with extracted order data or None on error
+    Ensures timezone-naive datetime objects in consistent format.
     """
     try:
         # Determine file type and read accordingly
@@ -32,43 +26,45 @@ def extract_order_data(file_buffer, platform):
         if platform == 'meesho':
             df = df[~df.iloc[:, 0].str.lower().isin(['shipped', 'cancelled'])]
             orders_df = pd.DataFrame({
-                'order_id': df.iloc[:, 1].copy(),   # Column B (index 1)
-                'sku': df.iloc[:, 5].copy(),        # Column F (index 5)
-                'quantity': df.iloc[:, 7].copy(),   # Column H (index 7)
+                'order_id': df.iloc[:, 1].copy(),
+                'sku': df.iloc[:, 5].copy(),
+                'quantity': df.iloc[:, 7].copy(),
                 'dispatch_date': df.iloc[:, 2].copy()
             })
-            print("Raw dispatch date values before conversion:", orders_df['dispatch_date'].head())
-
-            orders_df['dispatch_date'] = pd.to_datetime(orders_df['dispatch_date'], dayfirst=True, errors='coerce').dt.tz_localize(None) + timedelta(days=2)
-
+            
+            # Convert to UTC first, then remove timezone
+            orders_df['dispatch_date'] = (
+                pd.to_datetime(orders_df['dispatch_date'], dayfirst=True, errors='coerce')
+                .dt.tz_localize('Asia/Kolkata')  # Assuming Meesho uses IST
+                .dt.tz_convert('UTC')
+                .dt.tz_localize(None)  # Remove timezone info
+                + timedelta(days=2)
+                
         elif platform == 'flipkart':
             orders_df = pd.DataFrame({
-                'order_id': df.iloc[:, 3].copy(),   # Column D (index 3)
-                'sku': df.iloc[:, 8].copy(),        # Column I (index 8)
-                'quantity': df.iloc[:, 18].copy(),  # Column S (index 18)
+                'order_id': df.iloc[:, 3].copy(),
+                'sku': df.iloc[:, 8].copy(),
+                'quantity': df.iloc[:, 18].copy(),
                 'dispatch_date': df.iloc[:, 28].copy()
             })
-            orders_df['dispatch_date'] = orders_df['dispatch_date'].astype(str)
-            orders_df['dispatch_date'] = pd.to_datetime(orders_df['dispatch_date'], format="%b %d, %Y %H:%M:%S", errors='coerce').dt.tz_localize(None)
+            
+            # Convert to UTC first, then remove timezone
+            orders_df['dispatch_date'] = (
+                pd.to_datetime(orders_df['dispatch_date'].astype(str), 
+                format="%b %d, %Y %H:%M:%S", errors='coerce')
+                .dt.tz_localize('Asia/Kolkata')  # Assuming Flipkart uses IST
+                .dt.tz_convert('UTC')
+                .dt.tz_localize(None))  # Remove timezone info
+
         else:
             st.error("Invalid platform selected")
             return None
 
-        orders_df['dispatch_date'] = orders_df['dispatch_date'].dt.strftime("%Y-%m-%d")
-        print("Dispatch date after conversion:", orders_df['dispatch_date'].head())
-
-        # Initialize status as 'new'
+        # Rest of your processing remains the same...
         orders_df['status'] = 'new'
-
-        # Drop rows with missing order_id or SKU
         orders_df.dropna(subset=['order_id', 'sku'], inplace=True)
-
-        # Convert quantity to integer (default 1 if missing)
         orders_df['quantity'] = pd.to_numeric(orders_df['quantity'], errors='coerce').fillna(1).astype(int)
-
-        # Convert SKUs to uppercase
         orders_df['sku'] = orders_df['sku'].astype(str).str.upper()
-
         # Filter SKUs
         allowed_r_skus = ["MARATHI NATH", "R5678", "R91011"]
         orders_df = orders_df[
