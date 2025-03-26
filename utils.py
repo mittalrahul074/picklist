@@ -39,7 +39,7 @@ def extract_order_data(file_buffer, platform):
             })
             print("Raw dispatch date values before conversion:", orders_df['dispatch_date'].head())
 
-            orders_df['dispatch_date'] = pd.to_datetime(orders_df['dispatch_date'], dayfirst=True, errors='coerce') + timedelta(days=2)
+            orders_df['dispatch_date'] = pd.to_datetime(orders_df['dispatch_date'], dayfirst=True, errors='coerce').dt.tz_localize(None) + timedelta(days=2)
 
         elif platform == 'flipkart':
             orders_df = pd.DataFrame({
@@ -49,7 +49,7 @@ def extract_order_data(file_buffer, platform):
                 'dispatch_date': df.iloc[:, 28].copy()
             })
             orders_df['dispatch_date'] = orders_df['dispatch_date'].astype(str)
-            orders_df['dispatch_date'] = pd.to_datetime(orders_df['dispatch_date'], format="%b %d, %Y %H:%M:%S", errors='coerce')
+            orders_df['dispatch_date'] = pd.to_datetime(orders_df['dispatch_date'], format="%b %d, %Y %H:%M:%S", errors='coerce').dt.tz_localize(None)
         else:
             st.error("Invalid platform selected")
             return None
