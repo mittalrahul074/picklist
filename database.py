@@ -156,36 +156,44 @@ def get_orders_from_db(status=None):
 
 def get_orders_grouped_by_sku(orders_df, status=None):
     """
-    Get orders from database grouped by SKU
-    
-    Returns a DataFrame with one row per SKU, with aggregate data:
-    - sku: The SKU
-    - total_quantity: Sum of quantities for this SKU
-    - order_count: Number of orders with this SKU
-    - earliest_dispatch_date: The earliest dispatch date for this SKU
-    - order_ids: List of order IDs for this SKU
+    Processes orders with timezone safety for server environments.
     """
-    # Get all relevant orders
-    if orders_df.empty:
-        return pd.DataFrame()  # Return empty DataFrame if no data
+    try:
+        if orders_df.empty:
+            return pd.DataFrame()
 
-    # Filter by status if provided
-    if status:
-        orders_df = orders_df[orders_df["status"] == status]
+        # Create a working copy
+        orders_df = orders_df.copy()
 
-    # Convert dispatch_date to datetime
-    orders_df = orders_df.copy()
-    orders_df["dispatch_date"] = pd.to_datetime(orders_df["dispatch_date"], errors="coerce").dt.tz_localize(None)
+        # Convert to datetime if not already, and ensure UTC then timezone-naive
+        if not pd.api.types.is_datetime64_any_dtype(orders_df['dispatch_date']):
+            orders_df['dispatch_date'] = pd.to_datetime(orders_df['dispatch_date'], errors='coerce')
+        
+        # Force all datetimes to be UTC-based then timezone-naive
+        orders_df['dispatch_date'] = (
+            orders_df['dispatch_date']
+            .dt.tz_localize('UTC')  # First assume UTC if naive
+            .dt.tz_convert('UTC')  # Convert if already has timezone
+            .dt.tz_localize(None)  # Then make naive
+        )
 
-    # Group data by SKU
-    grouped_df = orders_df.groupby("sku").agg(
-        total_quantity=pd.NamedAgg(column="quantity", aggfunc="sum"),
-        order_count=pd.NamedAgg(column="order_id", aggfunc="count"),
-        earliest_dispatch_date=pd.NamedAgg(column="dispatch_date", aggfunc="min"),
-        order_ids=pd.NamedAgg(column="order_id", aggfunc=lambda x: list(x))
-    ).reset_index()
+        # Filter by status if provided
+        if status:
+            orders_df = orders_df[orders_df["status"] == status]
 
-    return grouped_df
+        # Group data by SKU
+        grouped_df = orders_df.groupby("sku").agg(
+            total_quantity=pd.NamedAgg(column="quantity", aggfunc="sum"),
+            order_count=pd.NamedAgg(column="order_id", aggfunc="count"),
+            earliest_dispatch_date=pd.NamedAgg(column="dispatch_date", aggfunc="min"),
+            order_ids=pd.NamedAgg(column="order_id", aggfunc=lambda x: list(x))
+        ).reset_index()
+
+        return grouped_df
+
+    except Exception as e:
+        print(f"Error in grouping orders: {str(e)}")
+        raise
 
 def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
     """

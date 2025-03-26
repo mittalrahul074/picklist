@@ -6,6 +6,7 @@ from admin import render_admin_panel
 from picker import render_picker_panel
 from validator import render_validator_panel
 from dashboard import render_dashboard
+from firestore_delete_app import render_delete_panel
 import utils
 from database import init_database
 from firebase_utils import add_order, get_orders
@@ -72,6 +73,9 @@ with st.sidebar:
         if st.button("Validate Orders"):
             st.session_state.page = "validator"
             st.rerun()
+        if st.button("Delete"):
+            st.session_state.page = "delete"
+            st.rerun()
         
         if st.button("Logout"):
             logout_user()
@@ -94,3 +98,5 @@ else:
         render_picker_panel()
     elif st.session_state.page == "validator":
         render_validator_panel()
+    elif st.session_state.page == "delete":
+        render_delete_panel()
