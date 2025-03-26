@@ -38,7 +38,7 @@ def extract_order_data(file_buffer, platform):
                 .dt.tz_localize('Asia/Kolkata')  # Assuming Meesho uses IST
                 .dt.tz_convert('UTC')
                 .dt.tz_localize(None)  # Remove timezone info
-                + timedelta(days=2)
+                + timedelta(days=2))
                 
         elif platform == 'flipkart':
             orders_df = pd.DataFrame({
