@@ -66,7 +66,7 @@ def extract_order_data(file_buffer, platform):
         orders_df['quantity'] = pd.to_numeric(orders_df['quantity'], errors='coerce').fillna(1).astype(int)
         orders_df['sku'] = orders_df['sku'].astype(str).str.upper()
         
-        allowed_r_skus = ["marathi nath", "R5678", "R91011"]
+        allowed_r_skus = ["MARATHI NATH", "R5678", "R91011"]
         orders_df = orders_df[
             orders_df['sku'].str.startswith(('K', 'L'), na=False) | 
             orders_df['sku'].isin(allowed_r_skus)
