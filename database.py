@@ -175,7 +175,7 @@ def get_orders_grouped_by_sku(orders_df, status=None):
 
     # Convert dispatch_date to datetime
     orders_df = orders_df.copy()
-    orders_df["dispatch_date"] = pd.to_datetime(orders_df["dispatch_date"], errors="coerce")
+    orders_df["dispatch_date"] = pd.to_datetime(orders_df["dispatch_date"], errors="coerce").dt.tz_localize(None)
 
     # Group data by SKU
     grouped_df = orders_df.groupby("sku").agg(
