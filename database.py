@@ -152,7 +152,12 @@ def get_orders_from_db(status=None):
         for order in orders
     ]
 
-    return pd.DataFrame(order_list)  if order_list else pd.DataFrame()
+    df = pd.DataFrame(order_list) if order_list else pd.DataFrame()
+
+    if "dispatch_date" in df.columns:
+        df["dispatch_date"] = pd.to_datetime(df["dispatch_date"], format="%d-%m-%Y", errors="coerce")
+
+    return df
 
 def get_orders_grouped_by_sku(orders_df, status=None):
     """

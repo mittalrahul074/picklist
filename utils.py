@@ -33,12 +33,7 @@ def extract_order_data(file_buffer, platform):
             })
             
             # Convert to UTC first, then remove timezone
-            orders_df['dispatch_date'] = (
-                pd.to_datetime(orders_df['dispatch_date'], dayfirst=True, errors='coerce')
-                .dt.tz_localize('Asia/Kolkata')  # Assuming Meesho uses IST
-                .dt.tz_convert('UTC')
-                .dt.tz_localize(None)  # Remove timezone info
-                + timedelta(days=2)
+            orders_df['dispatch_date'] = pd.to_datetime(orders_df['dispatch_date'], dayfirst=True, errors='coerce') + timedelta(days=2)
                 
         elif platform == 'flipkart':
             orders_df = pd.DataFrame({
@@ -48,24 +43,23 @@ def extract_order_data(file_buffer, platform):
                 'dispatch_date': df.iloc[:, 28].copy()
             })
             
-            # Convert to UTC first, then remove timezone
-            orders_df['dispatch_date'] = (
-                pd.to_datetime(orders_df['dispatch_date'].astype(str), 
-                format="%b %d, %Y %H:%M:%S", errors='coerce')
-                .dt.tz_localize('Asia/Kolkata')  # Assuming Flipkart uses IST
-                .dt.tz_convert('UTC')
-                .dt.tz_localize(None))  # Remove timezone info
+            orders_df['dispatch_date'] = pd.to_datetime(
+                orders_df['dispatch_date'].astype(str), 
+                format="%b %d, %Y %H:%M:%S", errors='coerce'
+            )
 
         else:
             st.error("Invalid platform selected")
             return None
 
+        # Convert dispatch_date to string format "DD-MM-YYYY"
+        orders_df['dispatch_date'] = orders_df['dispatch_date'].dt.strftime("%d-%m-%Y")
+        
         # Rest of your processing remains the same...
         orders_df['status'] = 'new'
         orders_df.dropna(subset=['order_id', 'sku'], inplace=True)
         orders_df['quantity'] = pd.to_numeric(orders_df['quantity'], errors='coerce').fillna(1).astype(int)
         orders_df['sku'] = orders_df['sku'].astype(str).str.upper()
-        # Filter SKUs
         allowed_r_skus = ["MARATHI NATH", "R5678", "R91011"]
         orders_df = orders_df[
             orders_df['sku'].str.startswith(('K', 'L'), na=False) | 
