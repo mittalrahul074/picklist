@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from database import get_orders_from_db
 
 def next_sku():
+    print("next_sku")
     st.session_state.current_index += 1
     if st.session_state.current_index >= len(st.session_state.sku_groups):
         st.session_state.current_index = 0
@@ -24,7 +25,7 @@ def extract_order_data(file_buffer, platform):
 
         # Extract data based on platform
         if platform == 'meesho':
-            df = df[~df.iloc[:, 0].str.lower().isin(['shipped', 'cancelled'])]
+            df = df[df.iloc[:, 0].str.lower().isin(['pending','ready_to_ship'])]
             orders_df = pd.DataFrame({
                 'order_id': df.iloc[:, 1].copy(),
                 'sku': df.iloc[:, 5].copy(),
@@ -54,7 +55,7 @@ def extract_order_data(file_buffer, platform):
 
         # Convert dispatch_date to string format "DD-MM-YYYY"
         orders_df['dispatch_date'] = orders_df['dispatch_date'].dt.strftime("%d-%m-%Y")
-        
+
         # Rest of your processing remains the same...
         orders_df['status'] = 'new'
         orders_df.dropna(subset=['order_id', 'sku'], inplace=True)
