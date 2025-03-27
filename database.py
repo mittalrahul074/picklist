@@ -161,38 +161,46 @@ def get_orders_from_db(status=None):
 
 def get_orders_grouped_by_sku(orders_df, status=None):
     """
-    Processes orders with timezone safety for server environments.
+    Groups orders by SKU and dispatch date, ensuring earliest dispatch orders come first.
     """
+
     try:
         if orders_df.empty:
+            print("⚠️ Warning: orders_df is empty before processing.")
             return pd.DataFrame()
 
         # Create a working copy
         orders_df = orders_df.copy()
 
-        # Convert to datetime if not already, and ensure UTC then timezone-naive
-        if not pd.api.types.is_datetime64_any_dtype(orders_df['dispatch_date']):
-            orders_df['dispatch_date'] = pd.to_datetime(orders_df['dispatch_date'], errors='coerce')
-        
-        # Force all datetimes to be UTC-based then timezone-naive
-        orders_df['dispatch_date'] = (
-            orders_df['dispatch_date']
-            .dt.tz_localize('UTC')  # First assume UTC if naive
-            .dt.tz_convert('UTC')  # Convert if already has timezone
-            .dt.tz_localize(None)  # Then make naive
-        )
+        print("Raw dispatch_date values:", orders_df["dispatch_date"].head(5).tolist())
+
+        # Convert dispatch_date to datetime format
+        orders_df["dispatch_date"] = pd.to_datetime(orders_df["dispatch_date"], errors="coerce")
+
+        print("After conversion, dispatch_date sample:\n", orders_df[['dispatch_date']].head())
+
+        before_drop = len(orders_df)
+        orders_df = orders_df.dropna(subset=['dispatch_date'])
+        after_drop = len(orders_df)
+        print(f"Dropped {before_drop - after_drop} rows with NaT dispatch_date.")
 
         # Filter by status if provided
         if status:
             orders_df = orders_df[orders_df["status"] == status]
 
-        # Group data by SKU
-        grouped_df = orders_df.groupby("sku").agg(
+        if orders_df.empty:
+            print("⚠️ Warning: No matching records after status filter.")
+            return pd.DataFrame()
+
+        # Group by SKU and dispatch_date
+        grouped_df = orders_df.groupby(["sku", "dispatch_date"]).agg(
             total_quantity=pd.NamedAgg(column="quantity", aggfunc="sum"),
             order_count=pd.NamedAgg(column="order_id", aggfunc="count"),
-            earliest_dispatch_date=pd.NamedAgg(column="dispatch_date", aggfunc="min"),
             order_ids=pd.NamedAgg(column="order_id", aggfunc=lambda x: list(x))
         ).reset_index()
+
+        # Sort by dispatch date (earliest first)
+        grouped_df = grouped_df.sort_values(by=["dispatch_date", "sku"], ascending=[True, True])
 
         return grouped_df
 

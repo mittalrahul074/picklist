@@ -35,7 +35,7 @@ def render_validator_panel():
     sku = current_sku_group['sku']
     total_quantity = current_sku_group['total_quantity']
     order_count = current_sku_group['order_count']
-    earliest_dispatch_date = current_sku_group['earliest_dispatch_date']
+    earliest_dispatch_date = current_sku_group['dispatch_date']
     
     # Create a card for the current SKU
     st.markdown(get_swipe_card_html({
