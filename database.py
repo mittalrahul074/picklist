@@ -12,8 +12,8 @@ from firebase_utils import add_order
 from google.cloud.firestore import FieldFilter
 
 def get_db_connection():
-    print("🔥 Database accessed from:")
-    traceback.print_stack(limit=3)
+    # print("🔥 Database accessed from:")
+    # traceback.print_stack(limit=3)
     try:
         firebase_credentials = dict(st.secrets["firebase"])  # Convert secrets to dict
 
@@ -158,6 +158,18 @@ def get_orders_from_db(status=None):
         df["dispatch_date"] = pd.to_datetime(df["dispatch_date"], format="%d-%m-%Y", errors="coerce")
 
     return df
+
+def cancel_orders(order_id):
+    db = get_db_connection()
+    orders_ref = db.collection("orders").document(order_id)
+
+    order_data = orders_ref.get().to_dict()  # Fetch order data safely
+    
+    if order_data:
+        orders_ref.update({"status": "cancelled", "updated_at": datetime.utcnow()})
+        print(f"✅ Order {order_id} cancelled.")
+    else:
+        print(f"⚠️ Order {order_id} not found in Firestore.")
 
 def get_orders_grouped_by_sku(orders_df, status=None):
     """
