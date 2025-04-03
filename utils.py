@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 import io
 from datetime import datetime, timedelta
-from database import get_orders_from_db
+from database import get_orders_from_db,cancel_orders
 
 def next_sku():
     print("next_sku")
@@ -23,8 +23,27 @@ def extract_order_data(file_buffer, platform):
         else:  # Excel file (.xlsx or .xls)
             df = pd.read_excel(file_buffer)
 
+        orders_cancel_df = pd.DataFrame()
+
         # Extract data based on platform
         if platform == 'meesho':
+            print("m")
+            cancle_df = df[df.iloc[:, 0].str.lower().isin(['cancelled'])]
+            orders_cancel_df = pd.DataFrame({
+                'order_id': cancle_df.iloc[:, 1].copy(),
+                'sku': cancle_df.iloc[:, 5].copy(),
+                'quantity': cancle_df.iloc[:, 7].copy(),
+                'dispatch_date': cancle_df.iloc[:, 2].copy()
+            })
+            orders_cancel_df["status"] = "cancelled"
+
+            if orders_cancel_df is not None and not orders_cancel_df.empty:
+                print("if")
+                for _, row in orders_cancel_df.iterrows():
+                    print("for")
+                    order_id = row["order_id"]
+                    cancel_orders(order_id)
+
             df = df[df.iloc[:, 0].str.lower().isin(['pending','ready_to_ship'])]
             orders_df = pd.DataFrame({
                 'order_id': df.iloc[:, 1].copy(),
@@ -61,7 +80,7 @@ def extract_order_data(file_buffer, platform):
         orders_df.dropna(subset=['order_id', 'sku'], inplace=True)
         orders_df['quantity'] = pd.to_numeric(orders_df['quantity'], errors='coerce').fillna(1).astype(int)
         orders_df['sku'] = orders_df['sku'].astype(str).str.upper()
-        allowed_r_skus = ["MARATHI NATH", "R5678", "R91011"]
+        allowed_r_skus = ["MARATHI NATH", "NEPALI HAIR PIN", "R91011"]
         orders_df = orders_df[
             orders_df['sku'].str.startswith(('K', 'L'), na=False) | 
             orders_df['sku'].isin(allowed_r_skus)

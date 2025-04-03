@@ -73,9 +73,10 @@ with st.sidebar:
         if st.button("Validate Orders"):
             st.session_state.page = "validator"
             st.rerun()
-        if st.button("Delete"):
-            st.session_state.page = "delete"
-            st.rerun()
+        if st.session_state.user_role == "admin":
+            if st.button("Delete"):
+                st.session_state.page = "delete"
+                st.rerun()
         
         if st.button("Logout"):
             logout_user()
