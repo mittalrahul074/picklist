@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from database import get_orders_from_db,update_status
 
 def next_sku():
-    print("next_sku")
     st.session_state.current_index += 1
     if st.session_state.current_index >= len(st.session_state.sku_groups):
         st.session_state.current_index = 0
@@ -40,11 +39,11 @@ def extract_order_data(file_buffer, platform):
             orders_cancel_df["status"] = "cancelled"
 
             if orders_cancel_df is not None and not orders_cancel_df.empty:
-                print("if")
+                print("if cancle")
                 for _, row in orders_cancel_df.iterrows():
-                    print("for")
+                    print("for cancle")
                     order_id = row["order_id"]
-                    cancel_orders(order_id,"cancelled")
+                    update_status(order_id,"cancelled")
 
             # remove ready to ship orders
 
@@ -59,12 +58,11 @@ def extract_order_data(file_buffer, platform):
             orders_rts_df["status"] = "ready_to_ship"
 
             if orders_rts_df is not None and not orders_rts_df.empty:
-                print("if")
+                print("if rts")
                 for _, row in orders_rts_df.iterrows():
-                    print("for")
+                    print("for rts")
                     order_id = row["order_id"]
                     update_status(order_id,"ready_to_ship")
-
 
 
             df = df[df.iloc[:, 0].str.lower().isin(['pending'])]
@@ -74,9 +72,6 @@ def extract_order_data(file_buffer, platform):
                 'quantity': df.iloc[:, 7].copy(),
                 'dispatch_date': df.iloc[:, 2].copy()
             })
-
-            print("print dispatch_date")
-            print(orders_df["dispatch_date"].head(1))
             
             # Convert to UTC first, then remove timezone
             orders_df['dispatch_date'] = pd.to_datetime(orders_df['dispatch_date'], dayfirst=True, errors='coerce') + timedelta(days=2)

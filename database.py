@@ -12,8 +12,6 @@ from firebase_utils import add_order
 from google.cloud.firestore import FieldFilter
 
 def get_db_connection():
-    # print("🔥 Database accessed from:")
-    # traceback.print_stack(limit=3)
     try:
         firebase_credentials = dict(st.secrets["firebase"])  # Convert secrets to dict
 
@@ -167,7 +165,7 @@ def update_status(order_id,status):
     
     if order_data:
         orders_ref.update({"status": status, "updated_at": datetime.utcnow()})
-        print(f"✅ Order {order_id} cancelled.")
+        print(f"✅ Order {order_id} {status}.")
     else:
         print(f"⚠️ Order {order_id} not found in Firestore.")
 
@@ -184,17 +182,17 @@ def get_orders_grouped_by_sku(orders_df, status=None):
         # Create a working copy
         orders_df = orders_df.copy()
 
-        print("Raw dispatch_date values:", orders_df["dispatch_date"].head(5).tolist())
+        # print("Raw dispatch_date values:", orders_df["dispatch_date"].head(5).tolist())
 
         # Convert dispatch_date to datetime format
         orders_df["dispatch_date"] = pd.to_datetime(orders_df["dispatch_date"], dayfirst=True, errors="coerce")
 
-        print("After conversion, dispatch_date sample:\n", orders_df[['dispatch_date']].head())
+        # print("After conversion, dispatch_date sample:\n", orders_df[['dispatch_date']].head())
 
         before_drop = len(orders_df)
         orders_df = orders_df.dropna(subset=['dispatch_date'])
         after_drop = len(orders_df)
-        print(f"Dropped {before_drop - after_drop} rows with NaT dispatch_date.")
+        # print(f"Dropped {before_drop - after_drop} rows with NaT dispatch_date.")
 
         # Filter by status if provided
         if status:
