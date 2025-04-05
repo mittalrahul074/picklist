@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 import io
 from datetime import datetime, timedelta
-from database import get_orders_from_db,cancel_orders
+from database import get_orders_from_db,update_status
 
 def next_sku():
     print("next_sku")
@@ -27,6 +27,8 @@ def extract_order_data(file_buffer, platform):
 
         # Extract data based on platform
         if platform == 'meesho':
+
+            # remove canclled orders
             print("m")
             cancle_df = df[df.iloc[:, 0].str.lower().isin(['cancelled'])]
             orders_cancel_df = pd.DataFrame({
@@ -42,15 +44,39 @@ def extract_order_data(file_buffer, platform):
                 for _, row in orders_cancel_df.iterrows():
                     print("for")
                     order_id = row["order_id"]
-                    cancel_orders(order_id)
+                    cancel_orders(order_id,"cancelled")
 
-            df = df[df.iloc[:, 0].str.lower().isin(['pending','ready_to_ship'])]
+            # remove ready to ship orders
+
+            print("m")
+            rts_df = df[df.iloc[:, 0].str.lower().isin(['ready_to_ship'])]
+            orders_rts_df = pd.DataFrame({
+                'order_id': rts_df.iloc[:, 1].copy(),
+                'sku': rts_df.iloc[:, 5].copy(),
+                'quantity': rts_df.iloc[:, 7].copy(),
+                'dispatch_date': rts_df.iloc[:, 2].copy()
+            })
+            orders_rts_df["status"] = "ready_to_ship"
+
+            if orders_rts_df is not None and not orders_rts_df.empty:
+                print("if")
+                for _, row in orders_rts_df.iterrows():
+                    print("for")
+                    order_id = row["order_id"]
+                    update_status(order_id,"ready_to_ship")
+
+
+
+            df = df[df.iloc[:, 0].str.lower().isin(['pending'])]
             orders_df = pd.DataFrame({
                 'order_id': df.iloc[:, 1].copy(),
                 'sku': df.iloc[:, 5].copy(),
                 'quantity': df.iloc[:, 7].copy(),
                 'dispatch_date': df.iloc[:, 2].copy()
             })
+
+            print("print dispatch_date")
+            print(orders_df["dispatch_date"].head(1))
             
             # Convert to UTC first, then remove timezone
             orders_df['dispatch_date'] = pd.to_datetime(orders_df['dispatch_date'], dayfirst=True, errors='coerce') + timedelta(days=2)
@@ -94,58 +120,29 @@ def extract_order_data(file_buffer, platform):
 
 def get_swipe_card_html(order_data, action_type):
     """
-    Generate HTML for a swipeable card
-    
-    Args:
-        order_data: Dictionary containing order data (sku, total_quantity, etc.)
-        action_type: Either 'pick' or 'validate'
-    
-    Returns:
-        HTML string for the swipeable card
+    Generate HTML for a swipeable card showing dispatch-wise breakdown.
     """
     sku = order_data['sku']
     total_quantity = order_data['total_quantity']
     order_count = order_data.get('order_count', 1)
-    dispatch_date = order_data.get('dispatch_date')
-    
+    breakdown = order_data.get('dispatch_date', [])
+
     if action_type == 'pick':
         left_action = "Skip"
         right_action = "Pick"
         card_id = f"pick_card_{sku}"
-    else:  # validate
+    else:
         left_action = "Reject"
         right_action = "Validate"
         card_id = f"validate_card_{sku}"
-    
-    # Format dispatch date for display
-    dispatch_date_display = ""
-    if dispatch_date is not None:
-        try:
-            # Convert to datetime if it's not already
-            if not isinstance(dispatch_date, datetime):
-                dispatch_date = pd.to_datetime(dispatch_date)
-            
-            # Format the date
-            dispatch_date_str = dispatch_date.strftime("%d %b %Y")
-            dispatch_date_display = f"<p><strong>Dispatch Date:</strong> {dispatch_date_str}</p>"
-        except:
-            # If conversion fails, don't show the date
-            pass
-    
-    html = f"""
-    <div class="swipe-card" id="{card_id}" data-sku="{sku}">
-        <div class="card-content">
-            <h3>SKU: {sku}</h3>
-            <p><strong>Order Count:</strong> {order_count}</p>
-            <p style="font-size: 1.5rem; text-align: center;"><strong>Total Quantity:</strong> {total_quantity}</p>
-            {dispatch_date_display}
-        </div>
-        <div class="swipe-actions">
-            <div class="swipe-left">{left_action}</div>
-            <div class="swipe-right">{right_action}</div>
-        </div>
-    </div>
-    """
+
+    # Build dispatch table rows
+    dispatch_table_rows = ""
+    for row in breakdown:
+        dispatch_table_rows += f"""<tr><td>{row['date']}</td><td style="text-align:right;">{row['quantity']}</td></tr>"""
+
+    # Final HTML
+    html = f"""<div class="swipe-card" id="{card_id}" data-sku="{sku}"><div class="card-content"><h3>SKU: {sku}</h3><table style="width:100%; margin: 10px 0; border-collapse: collapse;"><thead><tr><th style="text-align:left;">Dispatch Date</th><th style="text-align:right;">Quantity</th></tr></thead><tbody>{dispatch_table_rows}</tbody></table><p style="font-size: 1.3rem; text-align: right; margin-top: 8px;"><strong>Total Quantity:</strong> {total_quantity}</p></div></div>"""
     return html
 
 def export_orders_to_excel():
