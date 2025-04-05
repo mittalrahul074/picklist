@@ -1251,7 +1251,7 @@ def extract_order_data(file_buffer, platform):
         
         # Convert dispatch_date to datetime if it's not None
         if 'dispatch_date' in orders_df.columns:
-            orders_df['dispatch_date'] = pd.to_datetime(orders_df['dispatch_date'], errors='coerce')
+            orders_df['dispatch_date'] = pd.to_datetime(orders_df['dispatch_date'], dayfirst=True, errors='coerce')
             # For any NaT values, set to 3 days from now
             orders_df.loc[orders_df['dispatch_date'].isna(), 'dispatch_date'] = datetime.now() + timedelta(days=3)
         

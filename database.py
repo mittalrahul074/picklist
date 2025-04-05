@@ -155,18 +155,18 @@ def get_orders_from_db(status=None):
     df = pd.DataFrame(order_list) if order_list else pd.DataFrame()
 
     if "dispatch_date" in df.columns:
-        df["dispatch_date"] = pd.to_datetime(df["dispatch_date"], format="%d-%m-%Y", errors="coerce")
+        df["dispatch_date"] = pd.to_datetime(df["dispatch_date"], format="%d-%m-%Y", dayfirst=True, errors="coerce")
 
     return df
 
-def cancel_orders(order_id):
+def update_status(order_id,status):
     db = get_db_connection()
     orders_ref = db.collection("orders").document(order_id)
 
     order_data = orders_ref.get().to_dict()  # Fetch order data safely
     
     if order_data:
-        orders_ref.update({"status": "cancelled", "updated_at": datetime.utcnow()})
+        orders_ref.update({"status": status, "updated_at": datetime.utcnow()})
         print(f"✅ Order {order_id} cancelled.")
     else:
         print(f"⚠️ Order {order_id} not found in Firestore.")
@@ -187,7 +187,7 @@ def get_orders_grouped_by_sku(orders_df, status=None):
         print("Raw dispatch_date values:", orders_df["dispatch_date"].head(5).tolist())
 
         # Convert dispatch_date to datetime format
-        orders_df["dispatch_date"] = pd.to_datetime(orders_df["dispatch_date"], errors="coerce")
+        orders_df["dispatch_date"] = pd.to_datetime(orders_df["dispatch_date"], dayfirst=True, errors="coerce")
 
         print("After conversion, dispatch_date sample:\n", orders_df[['dispatch_date']].head())
 
@@ -204,15 +204,25 @@ def get_orders_grouped_by_sku(orders_df, status=None):
             print("⚠️ Warning: No matching records after status filter.")
             return pd.DataFrame()
 
+        def get_dispatch_breakdown(sub_df):
+            grouped = sub_df.groupby("dispatch_date")["quantity"].sum().reset_index()
+            return [
+                {
+                    "date": row["dispatch_date"].strftime("%d %b %Y"),
+                    "quantity": int(row["quantity"])
+                }
+                for _, row in grouped.iterrows()
+            ]
+
         # Group by SKU and dispatch_date
-        grouped_df = orders_df.groupby(["sku", "dispatch_date"]).agg(
-            total_quantity=pd.NamedAgg(column="quantity", aggfunc="sum"),
-            order_count=pd.NamedAgg(column="order_id", aggfunc="count"),
-            order_ids=pd.NamedAgg(column="order_id", aggfunc=lambda x: list(x))
-        ).reset_index()
+        grouped_df = orders_df.groupby("sku").apply(lambda df: pd.Series({
+            "total_quantity": int(df["quantity"].sum()),
+            "order_count": df["order_id"].nunique(),
+            "dispatch_breakdown": get_dispatch_breakdown(df)
+        })).reset_index()
 
         # Sort by dispatch date (earliest first)
-        grouped_df = grouped_df.sort_values(by=["dispatch_date", "sku"], ascending=[True, True])
+        grouped_df = grouped_df.sort_values(by=["sku"], ascending=[True])
 
         return grouped_df
 
