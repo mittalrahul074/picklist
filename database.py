@@ -60,6 +60,15 @@ def init_database():
     # except Exception as e:
     #     print(f"1Error initializing database: {e}")
 
+def get_pass(username):
+    db = get_db_connection()
+    if db is None:
+        print("Database connection failed.")
+        return False, 0
+    user_ref = db.collection("users").document(username)
+    user_data = user_ref.get().to_dict()
+    return user_data['pass']
+
 def add_orders_to_db(orders_df, platform):
     """
     Add new orders to the database

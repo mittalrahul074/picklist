@@ -29,40 +29,22 @@ def extract_order_data(file_buffer, platform):
 
             # remove canclled orders
             print("m")
-            cancle_df = df[df.iloc[:, 0].str.lower().isin(['cancelled'])]
+            cancle_df = df[df.iloc[:, 0].str.lower().isin(['cancelled','ready_to_ship'])]
             orders_cancel_df = pd.DataFrame({
                 'order_id': cancle_df.iloc[:, 1].copy(),
                 'sku': cancle_df.iloc[:, 5].copy(),
                 'quantity': cancle_df.iloc[:, 7].copy(),
-                'dispatch_date': cancle_df.iloc[:, 2].copy()
+                'dispatch_date': cancle_df.iloc[:, 2].copy(),
+                'status': cancle_df.iloc[:, 0].copy()
             })
-            orders_cancel_df["status"] = "cancelled"
 
             if orders_cancel_df is not None and not orders_cancel_df.empty:
                 print("if cancle")
                 for _, row in orders_cancel_df.iterrows():
                     print("for cancle")
                     order_id = row["order_id"]
-                    update_status(order_id,"cancelled")
-
-            # remove ready to ship orders
-
-            print("m")
-            rts_df = df[df.iloc[:, 0].str.lower().isin(['ready_to_ship'])]
-            orders_rts_df = pd.DataFrame({
-                'order_id': rts_df.iloc[:, 1].copy(),
-                'sku': rts_df.iloc[:, 5].copy(),
-                'quantity': rts_df.iloc[:, 7].copy(),
-                'dispatch_date': rts_df.iloc[:, 2].copy()
-            })
-            orders_rts_df["status"] = "ready_to_ship"
-
-            if orders_rts_df is not None and not orders_rts_df.empty:
-                print("if rts")
-                for _, row in orders_rts_df.iterrows():
-                    print("for rts")
-                    order_id = row["order_id"]
-                    update_status(order_id,"ready_to_ship")
+                    status = row["status"]
+                    update_status(order_id,status)
 
 
             df = df[df.iloc[:, 0].str.lower().isin(['pending'])]

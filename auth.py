@@ -1,15 +1,8 @@
 import streamlit as st
+from database import get_pass
 
 # Simple authentication system
 # In a real-world application, you would use a database and proper password hashing
-USERS = {
-    "admin": "admin123",
-    "user1": "user123",
-    "user2": "user234",
-    "riki": "riki123",
-    "pihu": "pihu123",
-    "mayank": "mayank123"
-}
 
 def authenticate_user(username, password):
     """
@@ -22,7 +15,7 @@ def authenticate_user(username, password):
     Returns:
         True if authentication is successful, False otherwise
     """
-    if username in USERS and USERS[username] == password:
+    if get_pass(username) == password:
         return True
     return False
 
