@@ -10,6 +10,7 @@ from firestore_delete_app import render_delete_panel
 import utils
 from database import init_database
 from firebase_utils import add_order, get_orders
+from picker_validator import render_picker_validator_panel
 
 # App configuration
 st.set_page_config(
@@ -96,8 +97,8 @@ else:
     elif st.session_state.page == "admin":
         render_admin_panel()
     elif st.session_state.page == "picker":
-        render_picker_panel()
+        render_picker_validator_panel("picker")
     elif st.session_state.page == "validator":
-        render_validator_panel()
+        render_picker_validator_panel("validator")
     elif st.session_state.page == "delete":
         render_delete_panel()
