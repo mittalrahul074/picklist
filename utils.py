@@ -83,11 +83,13 @@ def extract_order_data(file_buffer, platform):
         orders_df.dropna(subset=['order_id', 'sku'], inplace=True)
         orders_df['quantity'] = pd.to_numeric(orders_df['quantity'], errors='coerce').fillna(1).astype(int)
         orders_df['sku'] = orders_df['sku'].astype(str).str.upper()
-        allowed_r_skus = ["MARATHI NATH", "NEPALI HAIR PIN", "R91011"]
-        orders_df = orders_df[
-            orders_df['sku'].str.startswith(('K', 'L'), na=False) | 
-            orders_df['sku'].isin(allowed_r_skus)
-        ]
+        # TO-Do: Filter SKUs based on specific criteria if needed
+        # createria example: sku starts with K or L or in allowed list
+        # allowed_r_skus = ["MARATHI NATH", "NEPALI HAIR PIN", "R91011"]
+        # orders_df = orders_df[
+        #     orders_df['sku'].str.startswith(('K', 'L'), na=False) | 
+        #     orders_df['sku'].isin(allowed_r_skus)
+        # ]
 
         return orders_df
 
