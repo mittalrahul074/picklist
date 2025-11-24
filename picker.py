@@ -17,6 +17,13 @@ def pick_sku():
         st.session_state.user_role
     )
     
+    if processed_quantity == -1:
+        st.toast(
+            f"❌ Not enough quantity left for SKU={sku}. "
+            f"Someone already validated/picked these orders.",
+            icon="⚠️"
+        )
+
     if processed_quantity > 0:
         st.success(f"Picked {processed_quantity} units of {sku}!")
     
