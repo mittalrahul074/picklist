@@ -69,6 +69,21 @@ def get_pass(username):
     user_data = user_ref.get().to_dict()
     return user_data['pass']
 
+def get_party(username):
+    db = get_db_connection()
+    if db is None:
+        print("Database connection failed.")
+        return False, 0
+    user_ref = db.collection("users").document(username)
+    user_data = user_ref.get().to_dict()
+    print ("User data:", user_data)
+    if user_data['party']==1:
+        return "Kangan"
+    elif user_data['party']==2:
+        return "RS"
+    elif user_data['party']==3:
+        return "Both"
+
 def add_orders_to_db(orders_df, platform):
     """
     Add new orders to the database
