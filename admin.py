@@ -8,6 +8,12 @@ def render_admin_panel():
 
     if "orders_df" not in st.session_state:
         st.session_state.orders_df = get_orders_from_db()
+        df = st.session_state.orders_df
+        party_filter = st.session_state.get("party_filter", "Both")
+        if party_filter == "Kangan":
+            df = df[df["sku"].str.startswith("K")]
+        elif party_filter == "RS":
+            df = df[df["sku"].str.startswith("R")]
     
     """Render the admin panel for uploading Excel or CSV files"""
     st.header("Admin Panel - Order Upload")
