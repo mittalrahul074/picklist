@@ -64,7 +64,7 @@ with st.sidebar:
         st.markdown("---")
         st.header("Navigation")
         # if party is 3 then show a filter option to select between Kangan/RS/both ensure that data shown is updated as per the party selected
-        if st.session_state.party_filter == 'Both':
+        if get_party(st.session_state.user_role) == 'Both':
             current_filter = st.session_state.get("party_filter", "Both")
 
             party_filter = st.selectbox(
