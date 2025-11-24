@@ -8,7 +8,7 @@ from validator import render_validator_panel
 from dashboard import render_dashboard
 from firestore_delete_app import render_delete_panel
 import utils
-from database import init_database
+from database import init_database,get_party
 from firebase_utils import add_order, get_orders
 from picker_validator import render_picker_validator_panel
 
@@ -52,6 +52,7 @@ with st.sidebar:
             if authenticate_user(username, password):
                 st.session_state.authenticated = True
                 st.session_state.user_role = username  # Store username instead of role
+                st.session_state.party_filter = get_party(username)
                 st.success(f"Logged in as {username}")
                 st.rerun()
             else:
