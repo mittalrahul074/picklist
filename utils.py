@@ -9,6 +9,13 @@ def next_sku():
     if st.session_state.current_index >= len(st.session_state.sku_groups):
         st.session_state.current_index = 0
 
+def get_party_filter_df(df, party_filter):
+    if party_filter == "Kangan":
+        return df[df["sku"].str.startswith("K")]
+    elif party_filter == "RS":
+        return df[df["sku"].str.startswith("R")]
+    return df
+
 def extract_order_data(file_buffer, platform):
     """
     Extracts order data from Excel file or CSV file based on selected platform.

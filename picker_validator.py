@@ -3,6 +3,8 @@ import pandas as pd
 from utils import get_swipe_card_html,next_sku
 from database import get_orders_grouped_by_sku, update_orders_for_sku, calculate_order_counts,get_orders_from_db
 import time
+from validator import render_validator_panel
+import utils
 
 def get_page_info(page):
     if page == "picker":
@@ -51,6 +53,11 @@ def pick_sku(page_info):
     # next_sku()  # Move to next SKU
 
 def render_picker_validator_panel(which_page):
+    """Render the validator panel if which_page is 'validator', else picker panel"""
+    if which_page == "validator":
+        # redirect to validator panel
+        render_validator_panel()
+        return
     # Main Picker Panel
     page_info = get_page_info(which_page)
     st.header(f"Order {page_info['page_head']}")
@@ -58,8 +65,12 @@ def render_picker_validator_panel(which_page):
     if "orders_df" not in st.session_state:
         st.session_state.orders_df = get_orders_from_db()  # Fetch only once
 
+    df= st.session_state.orders_df
+    party_filter = st.session_state.get("party_filter", "Both")
+    df = utils.get_party_filter_df(df, party_filter)
+
     st.session_state.sku_groups = get_orders_grouped_by_sku(
-        st.session_state.orders_df,
+        df,
         status= page_info['status'])
 
     sku_groups = st.session_state.sku_groups
