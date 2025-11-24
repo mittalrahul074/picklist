@@ -7,7 +7,6 @@ from google.cloud.firestore import FieldFilter
 import json
 import os
 import traceback
-
 from firebase_utils import add_order
 from google.cloud.firestore import FieldFilter
 
@@ -316,6 +315,7 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
     return len(processed_order_ids), processed_order_ids
 
 def calculate_order_counts():
+    import utils
     """
     Calculate counts of orders by status
     
@@ -328,6 +328,8 @@ def calculate_order_counts():
         st.session_state.orders_df = get_orders_from_db()
 
     orders_df = st.session_state.orders_df  # Get the cached orders DataFrame
+    party_filter = st.session_state.get("party_filter", "Both")
+    orders_df = utils.get_party_filter_df(orders_df, party_filter)
 
     if not orders_df.empty:
         counts = orders_df["status"].value_counts().to_dict()  # Count occurrences of each status
@@ -339,6 +341,7 @@ def calculate_order_counts():
     return counts
 
 def get_user_productivity():
+    import utils
     """
     Get productivity data by user from Firestore.
 
@@ -349,6 +352,8 @@ def get_user_productivity():
         return pd.DataFrame(columns=['user', 'picked_count', 'picked_quantity', 'validated_count', 'validated_quantity'])
 
     orders_df = st.session_state.orders_df
+    party_filter = st.session_state.get("party_filter", "Both")
+    orders_df = utils.get_party_filter_df(orders_df, party_filter)
 
     # Filter and group data for picked orders
     picked_summary = (
