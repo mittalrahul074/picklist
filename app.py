@@ -8,7 +8,7 @@ from validator import render_validator_panel
 from dashboard import render_dashboard
 from firestore_delete_app import render_delete_panel
 import utils
-from database import init_database,get_party
+from database import init_database, get_party
 from firebase_utils import add_order, get_orders
 from picker_validator import render_picker_validator_panel
 
@@ -63,6 +63,23 @@ with st.sidebar:
         # Navigation Links (Now accessible to all)
         st.markdown("---")
         st.header("Navigation")
+        # if party is 3 then show a filter option to select between Kangan/RS/both ensure that data shown is updated as per the party selected
+        if st.session_state.party_filter == 'Both':
+            current_filter = st.session_state.get("party_filter", "Both")
+
+            party_filter = st.selectbox(
+                "Select Party",
+                options=["Both", "RS", "Kangan"],
+                index=["Both", "RS", "Kangan"].index(current_filter)
+            )
+
+            if party_filter != current_filter:
+                st.session_state.party_filter = party_filter
+                print("Party filter changed to:", party_filter)
+                st.rerun()  # 🔥 reload UI + reload DB queries
+
+            st.markdown("---")
+
         if st.button("Dashboard"):
             st.session_state.page = "dashboard"
             st.rerun()
