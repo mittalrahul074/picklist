@@ -3,12 +3,6 @@ from datetime import datetime, timedelta
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
-from google.cloud.firestore import FieldFilter
-import json
-import os
-import traceback
-from firebase_utils import add_order
-from google.cloud.firestore import FieldFilter
 
 def get_db_connection():
     try:
@@ -159,11 +153,11 @@ def get_orders_from_db(status=None):
 
     seven_days_ago = datetime.utcnow() - timedelta(days=7)
 
-    query = orders_ref.where(filter=FieldFilter("created_at", ">=", seven_days_ago))
+    query = orders_ref.where("created_at", ">=", seven_days_ago)
 
     # Apply status filter if provided
     if status:
-        query = orders_ref.where(filter=FieldFilter("status", "==", status))
+        query = orders_ref.where("status", "==", status)
 
     orders = orders_ref.stream()
     order_list = []
@@ -253,66 +247,97 @@ def get_orders_grouped_by_sku(orders_df, status=None):
 
 def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
     """
-    Update the status of orders for a specific SKU, up to the given quantity
-    This selects the most urgent orders first based on dispatch date
-    
-    Args:
-        db_path: Path to the database
-        sku: The SKU to update
-        quantity_to_process: The quantity to process (may span multiple orders)
-        new_status: The new status to set for the orders
-        user: Optional user who made the change
-        
-    Returns:
-        Tuple of (processed_quantity, processed_order_ids)
+    Safe race-condition-free update for a specific SKU + dispatch_date.
+    Uses Firestore transaction to prevent multiple users from corrupting data.
     """
+
+    print(f"[DEBUG] update_orders_for_sku called with sku={sku!r}, "
+          f"quantity_to_process={quantity_to_process}, new_status={new_status!r}, user={user!r}")
+
     db = get_db_connection()
-    
-    # Get all orders for this SKU with status 'new' (for picking) or 'picked' (for validating)
-    old_status = 'new' if new_status == 'picked' else 'picked' if new_status == 'validated' else None
-    
+    if db is None:
+        print("[DEBUG] No DB connection available.")
+        return 0, []
+
+    transaction = db.transaction()
+
+    # Determine old status → what we are converting *from*
+    old_status = (
+        "new" if new_status == "picked" else
+        "picked" if new_status == "validated" else
+        None
+    )
+
+    print(f"[DEBUG] Resolved old_status={old_status!r} for new_status={new_status!r}")
+
     if old_status is None:
-        return 0, []
-    
-    orders_ref = db.collection("orders")
-    orders_ref = db.collection("orders") \
-               .where(filter=firestore.FieldFilter("sku", "==", sku)) \
-               .where(filter=firestore.FieldFilter("status", "==", old_status)) \
-               .order_by("dispatch_date").limit(quantity_to_process)
-
-    orders = list(orders_ref.stream())
-
-    if not orders:
+        print("[DEBUG] old_status is None - unsupported status transition")
         return 0, []
 
-    processed_order_ids = [order.id for order in orders]
+    @firestore.transactional
+    def process(transaction):
+        print("[DEBUG] Starting Firestore transaction")
+        # STEP 1 — READ orders safely inside transaction
+        query = (
+            db.collection("orders")
+            .where("sku", "==", sku)
+            .where("status", "==", old_status)
+            .order_by("created_at")           # or order_by("order_id")
+            .limit(quantity_to_process)
+        )
 
-    batch = db.batch()
+        print(f"[DEBUG] Query prepared: sku={sku!r}, status={old_status!r}, "
+              f"limit={quantity_to_process}")
 
-    for order in orders:
-        order_ref = db.collection("orders").document(order.id)
-        # Prepare update data
-        update_data = {
-            "status": new_status,
-            "updated_at": datetime.utcnow()
-        }
+        orders = list(transaction.get(query))
+        print(f"[DEBUG] Orders fetched in transaction: count={len(orders)}")
 
-        if user:
-            update_data[f"{new_status}_by"] = user
+        # ⭐ CRITICAL VALIDATION ⭐
+        if len(orders) < quantity_to_process:
+            # update dataframe in session state to reflect current DB state
+            st.session_state.orders_df = get_orders_from_db()
+            return -1, []
 
-        batch.update(order.reference, update_data)
+        processed_ids = []
 
-    batch.commit()
+        # STEP 2 — UPDATE ORDER-BY-ORDER inside the same transaction
+        for order in orders:
+            ref = order.reference
+            update_fields = {
+                "status": new_status,
+                "updated_at": datetime.utcnow()
+            }
 
+            if user:
+                update_fields[f"{new_status}_by"] = user
+
+            print(f"[DEBUG] Updating order id={order.id!r} fields={update_fields}")
+            transaction.update(ref, update_fields)
+            processed_ids.append(order.id)
+
+        print(f"[DEBUG] Transaction updates prepared for {len(processed_ids)} orders")
+        return len(processed_ids), processed_ids
+
+    # RUN the transactional function
+    try:
+        processed_qty, processed_ids = process(transaction)
+        print(f"[DEBUG] Transaction committed: processed_qty={processed_qty}, processed_ids={processed_ids}")
+    except Exception as ex:
+        print(f"[DEBUG] Transaction failed with exception: {ex}")
+        raise
+
+    # STEP 3 — update Streamlit session cache (optional)
     if "orders_df" in st.session_state:
+        print(f"[DEBUG] Updating session_state.orders_df for {len(processed_ids)} processed orders")
         df = st.session_state.orders_df
-        mask = df["order_id"].isin(processed_order_ids)
+        mask = df["order_id"].isin(processed_ids)
         df.loc[mask, "status"] = new_status
         if user:
             df.loc[mask, f"{new_status}_by"] = user
-        st.session_state.orders_df = df  # Save changes back to session state
+        st.session_state.orders_df = df
+        print("[DEBUG] session_state.orders_df updated")
 
-    return len(processed_order_ids), processed_order_ids
+    return processed_qty, processed_ids
 
 def calculate_order_counts():
     import utils

@@ -31,6 +31,13 @@ def pick_sku(page_info):
         st.session_state.user_role
     )
     
+    if processed_quantity == -1:
+        st.toast(
+            f"❌ Not enough quantity left for SKU={sku}. "
+            f"Someone already validated/picked these orders.",
+            icon="⚠️"
+        )
+
     if processed_quantity > 0:
         st.success(f"{page_info['new_status']} {processed_quantity} units of {sku}!")
     
@@ -100,7 +107,7 @@ def render_validator_panel():
             # defalut input value will be max_qty
 
             input_val = cols[2].number_input(
-                "",
+                "qty_input_hidden_label_" + key,
                 min_value=0,
                 max_value=max_qty,
                 value=max_qty,
@@ -114,24 +121,49 @@ def render_validator_panel():
 
     if st.button("Submit Validation", type="primary", use_container_width=True):
         total_validated = 0
+        print("DEBUG: Submit Validation clicked")
+        st.write("DEBUG: Starting validation...")
+
         for idx, row in sku_groups.iterrows():
             sku = row["sku"]
             dispatch_list = row["dispatch_breakdown"]
+            print(f"DEBUG: Processing SKU={sku}, row_index={idx}, dispatch_list_type={type(dispatch_list)}")
+
             if isinstance(dispatch_list, str):
                 dispatch_list = json.loads(dispatch_list)
+                print(f"DEBUG: Parsed dispatch_list JSON for SKU={sku}: {dispatch_list}")
 
             for d_idx, dispatch in enumerate(dispatch_list):
                 key = f"{sku}_{d_idx}"
                 qty = st.session_state.validation_inputs.get(key, 0)
-                
-                if qty > 0:
-                    processed_qty, _ = update_orders_for_sku(
-                        sku,
-                        qty,
-                        page_info['new_status'],
-                        st.session_state.user_role
+                print(f"DEBUG: SKU={sku} d_idx={d_idx} key={key} qty_input={qty}")
+
+                if qty <= 0:
+                    print(f"DEBUG: Skipping SKU={sku} d_idx={d_idx} because qty={qty}")
+                    continue
+
+                processed_qty, _ = update_orders_for_sku(
+                    sku,
+                    qty,
+                    page_info['new_status'],
+                    st.session_state.user_role
+                )
+                if processed_qty == -1:
+                    st.toast(
+                        f"❌ Not enough quantity left for SKU={sku}. "
+                        f"Someone already validated/picked these orders.",
+                        icon="⚠️"
                     )
-                    total_validated += processed_qty
+                    time.sleep(0.8)
+                    keys_to_clear = ["orders_df"]
+                    for k in keys_to_clear:
+                        if k in st.session_state:
+                            del st.session_state[k]
+                    st.rerun()
+                print(f"DEBUG: update_orders_for_sku returned processed_qty={processed_qty} for SKU={sku}, requested_qty={qty}")
+                total_validated += processed_qty
+
+        print(f"DEBUG: Total validated computed = {total_validated}")
 
         st.success(f"Validated {total_validated} items successfully!")
         time.sleep(1)

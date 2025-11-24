@@ -45,6 +45,13 @@ def pick_sku(page_info):
         page_info['new_status'],
         st.session_state.user_role
     )
+
+    if processed_quantity == -1:
+        st.toast(
+            f"❌ Not enough quantity left for SKU={sku}. "
+            f"Someone already validated/picked these orders.",
+            icon="⚠️"
+        )
     
     if processed_quantity > 0:
         st.success(f"{page_info['new_status']} {processed_quantity} units of {sku}!")
@@ -132,6 +139,13 @@ def render_picker_validator_panel(which_page):
             page_info['new_status'],
             st.session_state.user_role
         )
+
+        if processed_quantity == -1:
+            st.toast(
+                f"❌ Not enough quantity left for SKU={sku}. "
+                f"Someone already validated/picked these orders.",
+                icon="⚠️"
+            )
 
         if processed_quantity > 0:
             st.success(f"{page_info['new_status']} {processed_quantity} units of {sku}!")
