@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
-from auth import authenticate_user, logout_user
+from auth import authenticate_user, logout_user,set_cookie, get_cookie
 from admin import render_admin_panel
 from picker import render_picker_panel
 from validator import render_validator_panel
@@ -42,6 +42,16 @@ st.title("Order Management System")
 # Sidebar for authentication and navigation
 with st.sidebar:
     st.header("Login")
+
+    if "cookies" not in st.session_state:
+        st.session_state.cookies = {}
+
+    username = get_cookie("logged_user")
+    if username:
+        st.success(f"Welcome back, {username}!")
+        st.session_state.user_role = username
+        st.session_state.party_filter = get_party(username)
+        st.session_state.authenticated = True
     
     if not st.session_state.authenticated:
         username = st.text_input("Username")
@@ -50,6 +60,7 @@ with st.sidebar:
         
         if login_button:
             if authenticate_user(username, password):
+                set_cookie("logged_user", username)
                 st.session_state.authenticated = True
                 st.session_state.user_role = username  # Store username instead of role
                 st.session_state.party_filter = get_party(username)
