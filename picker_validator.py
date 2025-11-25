@@ -52,12 +52,21 @@ def pick_sku(page_info):
             f"Someone already validated/picked these orders.",
             icon="⚠️"
         )
+        return
     
     if processed_quantity > 0:
         st.success(f"{page_info['new_status']} {processed_quantity} units of {sku}!")
     
     time.sleep(0.5)  # UX delay
     # next_sku()  # Move to next SKU
+
+@st.cache_data(ttl=30)
+def cached_orders():
+    return get_orders_from_db()
+
+@st.cache_data
+def cached_group_orders(df, status):
+    return get_orders_grouped_by_sku(df, status)
 
 def render_picker_validator_panel(which_page):
     """Render the validator panel if which_page is 'validator', else picker panel"""
@@ -70,13 +79,13 @@ def render_picker_validator_panel(which_page):
     st.header(f"Order {page_info['page_head']}")
 
     if "orders_df" not in st.session_state:
-        st.session_state.orders_df = get_orders_from_db()  # Fetch only once
+        st.session_state.orders_df = cached_orders()  # Fetch only once
 
     df= st.session_state.orders_df
     party_filter = st.session_state.get("party_filter", "Both")
     df = utils.get_party_filter_df(df, party_filter)
 
-    st.session_state.sku_groups = get_orders_grouped_by_sku(
+    st.session_state.sku_groups = cached_group_orders(
         df,
         status= page_info['status'])
 
@@ -86,7 +95,7 @@ def render_picker_validator_panel(which_page):
 
     if "current_index" not in st.session_state:
         st.session_state.current_index = 0  # Ensure index is initialized
-    elif st.session_state.current_index+1>len(sku_groups):
+    if st.session_state.current_index>=len(sku_groups):
         st.session_state.current_index = 0
 
     if sku_groups.empty:
@@ -113,13 +122,10 @@ def render_picker_validator_panel(which_page):
         st.button(f"⬅️ {page_info['left']}", key=page_info['key_left'], use_container_width=True, on_click=next_sku)
 
     with col2:
-        st.button(
-            f"{page_info['right']} ➡️", 
-            key=page_info['key_right'], 
-            use_container_width=True, 
-            on_click=pick_sku,
-            kwargs={"page_info": page_info}
-        )
+        if st.button(f"{page_info['right']} ➡️", key=page_info['key_right'], use_container_width=True):
+            pick_sku(page_info)
+            st.session_state.current_index += 1
+            st.rerun()
 
     # Pick Quantity Adjustment
     st.markdown("---")
@@ -131,7 +137,7 @@ def render_picker_validator_panel(which_page):
         max_value=int(total_quantity), 
         value=int(total_quantity)
     )
-    print(pick_quantity)
+
     if st.button(f"{page_info['to_do']} Adjusted Quantity", use_container_width=True):
         processed_quantity, processed_order_ids = update_orders_for_sku(
             sku, 
@@ -146,10 +152,11 @@ def render_picker_validator_panel(which_page):
                 f"Someone already validated/picked these orders.",
                 icon="⚠️"
             )
+            return
 
         if processed_quantity > 0:
             st.success(f"{page_info['new_status']} {processed_quantity} units of {sku}!")
 
         time.sleep(0.5)
-        next_sku()
+        st.session_state.current_index += 1
         st.rerun()

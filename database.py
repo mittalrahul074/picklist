@@ -69,7 +69,6 @@ def get_party(username):
         return False, 0
     user_ref = db.collection("users").document(username)
     user_data = user_ref.get().to_dict()
-    print ("User data:", user_data)
     if user_data['party']==1:
         return "Kangan"
     elif user_data['party']==2:
@@ -251,12 +250,8 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
     Uses Firestore transaction to prevent multiple users from corrupting data.
     """
 
-    print(f"[DEBUG] update_orders_for_sku called with sku={sku!r}, "
-          f"quantity_to_process={quantity_to_process}, new_status={new_status!r}, user={user!r}")
-
     db = get_db_connection()
     if db is None:
-        print("[DEBUG] No DB connection available.")
         return 0, []
 
     transaction = db.transaction()
@@ -268,31 +263,23 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
         None
     )
 
-    print(f"[DEBUG] Resolved old_status={old_status!r} for new_status={new_status!r}")
-
     if old_status is None:
-        print("[DEBUG] old_status is None - unsupported status transition")
         return 0, []
 
     @firestore.transactional
     def process(transaction):
-        print("[DEBUG] Starting Firestore transaction")
         # STEP 1 — READ orders safely inside transaction
         query = (
             db.collection("orders")
             .where("sku", "==", sku)
             .where("status", "==", old_status)
-            .order_by("created_at")           # or order_by("order_id")
+            .order_by("created_at")
             .limit(quantity_to_process)
         )
 
-        print(f"[DEBUG] Query prepared: sku={sku!r}, status={old_status!r}, "
-              f"limit={quantity_to_process}")
-
         orders = list(transaction.get(query))
-        print(f"[DEBUG] Orders fetched in transaction: count={len(orders)}")
 
-        # ⭐ CRITICAL VALIDATION ⭐
+        # CRITICAL VALIDATION
         if len(orders) < quantity_to_process:
             # update dataframe in session state to reflect current DB state
             st.session_state.orders_df = get_orders_from_db()
@@ -311,31 +298,25 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
             if user:
                 update_fields[f"{new_status}_by"] = user
 
-            print(f"[DEBUG] Updating order id={order.id!r} fields={update_fields}")
             transaction.update(ref, update_fields)
             processed_ids.append(order.id)
 
-        print(f"[DEBUG] Transaction updates prepared for {len(processed_ids)} orders")
         return len(processed_ids), processed_ids
 
     # RUN the transactional function
     try:
         processed_qty, processed_ids = process(transaction)
-        print(f"[DEBUG] Transaction committed: processed_qty={processed_qty}, processed_ids={processed_ids}")
     except Exception as ex:
-        print(f"[DEBUG] Transaction failed with exception: {ex}")
         raise
 
     # STEP 3 — update Streamlit session cache (optional)
     if "orders_df" in st.session_state:
-        print(f"[DEBUG] Updating session_state.orders_df for {len(processed_ids)} processed orders")
         df = st.session_state.orders_df
         mask = df["order_id"].isin(processed_ids)
         df.loc[mask, "status"] = new_status
         if user:
             df.loc[mask, f"{new_status}_by"] = user
         st.session_state.orders_df = df
-        print("[DEBUG] session_state.orders_df updated")
 
     return processed_qty, processed_ids
 
