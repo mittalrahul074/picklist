@@ -3,40 +3,47 @@ from streamlit_cookies_manager import EncryptedCookieManager
 from database import get_pass
 
 # ---------------------------------------------------------------------
-# Create encrypted, browser-persistent cookie manager
+# Cookie manager - will be initialized when needed
 # ---------------------------------------------------------------------
-try:
-    print("Initializing cookie manager...")
-    st.write("DEBUG: Initializing cookie manager...")
+cookies = None
+
+def init_cookies():
+    """Initialize cookie manager with proper error handling"""
+    global cookies
     
-    if "auth_secret" not in st.secrets:
-        error_msg = "auth_secret not found in st.secrets"
+    if cookies is not None:
+        return cookies
+    
+    try:
+        print("Initializing cookie manager...")
+        
+        if "auth_secret" not in st.secrets:
+            error_msg = "auth_secret not found in st.secrets"
+            print(error_msg)
+            st.error(error_msg)
+            st.stop()
+        
+        cookies = EncryptedCookieManager(
+            prefix="oms_",
+            password=st.secrets["auth_secret"]
+        )
+        
+        print("Cookie manager created, checking if ready...")
+        
+        # Must stop until cookie manager is ready
+        if not cookies.ready():
+            print("Cookie manager not ready, stopping...")
+            st.info("🔄 Initializing secure session... Please wait.")
+            st.stop()
+        
+        print("Cookie manager ready!")
+        return cookies
+        
+    except Exception as e:
+        error_msg = f"Error initializing cookie manager: {e}"
         print(error_msg)
         st.error(error_msg)
         st.stop()
-    
-    cookies = EncryptedCookieManager(
-        prefix="oms_",
-        password=st.secrets["auth_secret"]
-    )
-    
-    print("Cookie manager created, checking if ready...")
-    st.write("DEBUG: Cookie manager created, checking if ready...")
-    
-    # Must stop until cookie manager is ready
-    if not cookies.ready():
-        print("Cookie manager not ready, stopping...")
-        st.write("DEBUG: Cookie manager not ready, stopping...")
-        st.stop()
-    
-    print("Cookie manager ready!")
-    st.write("DEBUG: Cookie manager ready!")
-    
-except Exception as e:
-    error_msg = f"Error initializing cookie manager: {e}"
-    print(error_msg)
-    st.error(error_msg)
-    st.stop()
 
 # ---------------------------------------------------------------------
 # AUTHENTICATION LOGIC
@@ -65,17 +72,20 @@ def authenticate_user(username: str, password: str) -> bool:
 
 
 def set_cookie(name: str, value: str):
-    cookies[name] = value
-    cookies.save()  # write to user's browser
+    cookies_manager = init_cookies()
+    cookies_manager[name] = value
+    cookies_manager.save()  # write to user's browser
 
 
 def get_cookie(name: str):
-    return cookies.get(name)
+    cookies_manager = init_cookies()
+    return cookies_manager.get(name)
 
 
 def clear_cookie(name: str):
-    cookies[name] = ""
-    cookies.save()
+    cookies_manager = init_cookies()
+    cookies_manager[name] = ""
+    cookies_manager.save()
 
 
 def logout_user():

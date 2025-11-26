@@ -1,5 +1,10 @@
 import os
 import streamlit as st
+import warnings
+
+# Suppress the st.cache deprecation warning if it's coming from dependencies
+warnings.filterwarnings("ignore", message=".*st.cache.*deprecated.*")
+
 from auth import authenticate_user, logout_user, set_cookie, get_cookie
 from admin import render_admin_panel
 from picker_validator import render_picker_validator_panel
@@ -17,6 +22,32 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+# -------------------------------------------------------------------
+# BASIC CONNECTIVITY TEST
+# -------------------------------------------------------------------
+# Add this at the very top to test if debug messages work
+st.write("🔧 **DEBUG MODE ACTIVE** - App is loading...")
+print("App starting - this should appear in logs")
+
+# Test secrets availability
+try:
+    if "auth_secret" in st.secrets:
+        st.write("✅ Auth secret found")
+    else:
+        st.write("❌ Auth secret missing")
+        
+    if "firebase" in st.secrets:
+        st.write("✅ Firebase secrets found")
+        firebase_keys = list(st.secrets["firebase"].keys())
+        st.write(f"📋 Firebase keys: {firebase_keys}")
+    else:
+        st.write("❌ Firebase secrets missing")
+        
+except Exception as e:
+    st.write(f"❌ Error checking secrets: {e}")
+
+st.write("---")
 
 # -------------------------------------------------------------------
 # SESSION INITIALIZATION
