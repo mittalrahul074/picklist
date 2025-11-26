@@ -125,13 +125,16 @@ with st.sidebar:
                     
                     # Fetch party filter
                     try:
-                        st.write("DEBUG: Fetching party filter...")
+                        st.write("🔍 DEBUG: Fetching party filter...")
                         party = get_party(username)
                         st.session_state.party_filter = party
-                        st.write(f"DEBUG: Party filter set to: {party}")
+                        st.write(f"✅ DEBUG: Party filter set to: {party}")
                     except Exception as e:
-                        st.error(f"Error fetching party: {e}")
-                        st.session_state.party_filter = None
+                        error_msg = f"❌ Error fetching party: {e}"
+                        print(error_msg)
+                        st.error(error_msg)
+                        st.session_state.party_filter = "Both"  # Default fallback
+                        st.write("🔄 DEBUG: Using default party filter: Both")
 
                     # Save cookie → browser persistent login
                     try:
