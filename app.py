@@ -73,8 +73,9 @@ with st.sidebar:
     if not st.session_state.authenticated:
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
-        
+        print ("Username:", username)
         if st.button("Login"):
+            print("Attempting login for user:", username)
             if authenticate_user(username, password):
                 st.session_state.authenticated = True
                 st.session_state.user_role = username

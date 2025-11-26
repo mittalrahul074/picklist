@@ -5,6 +5,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 
 def get_db_connection():
+    print("Connecting to Firestore database...")
     try:
         print(st.secrets["firebase"])
         firebase_credentials = dict(st.secrets["firebase"])  # Convert secrets to dict
@@ -55,6 +56,7 @@ def init_database():
     #     print(f"1Error initializing database: {e}")
 
 def get_pass(username):
+    print("Fetching password for user:", username)
     db = get_db_connection()
     if db is None:
         print("Database connection failed.")
