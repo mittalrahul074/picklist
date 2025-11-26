@@ -4,10 +4,12 @@ from datetime import datetime
 import firebase_admin
 from firebase_admin import firestore, credentials, initialize_app
 from google.cloud.firestore_v1 import Client as FirestoreClient
+import database
 
 # Initialize Firebase
 if not firebase_admin._apps:
-    cred = credentials.Certificate("serviceAccountKey.json")
+    firebase_credentials = dict(st.secrets["firebase"])
+    cred = credentials.Certificate(firebase_credentials)
     initialize_app(cred)
 db = firestore.client()
 
