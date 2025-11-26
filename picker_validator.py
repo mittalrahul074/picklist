@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from utils import get_swipe_card_html,next_sku
-from database import get_orders_grouped_by_sku, update_orders_for_sku, calculate_order_counts,get_orders_from_db
+from database import get_orders_grouped_by_sku, update_orders_for_sku, calculate_order_counts,get_orders_from_db,get_product_image_url
 import time
 from validator import render_validator_panel
 import utils
@@ -109,6 +109,13 @@ def render_picker_validator_panel(which_page):
     order_count = current_sku_group['order_count']
     dispatch_date = current_sku_group['dispatch_breakdown']
     # Display SKU card
+    with st.expander("📷 View Product Image"):
+        img_url = get_product_image_url(sku)  # or database.get_product_image_url(sku)
+        print("Product Image URL:", img_url)
+        if img_url:
+            st.image(img_url, use_column_width=True)
+        else:
+            st.info("No product image found for this SKU.")
     st.markdown(get_swipe_card_html({
         'sku': sku,
         'total_quantity': total_quantity,
