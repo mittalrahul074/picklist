@@ -74,26 +74,48 @@ with st.sidebar:
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
         print ("Username:", username)
+        
         if st.button("Login"):
             print("Attempting login for user:", username)
-            if authenticate_user(username, password):
-                st.session_state.authenticated = True
-                st.session_state.user_role = username
-                
-                # Fetch party filter
-                try:
-                    st.session_state.party_filter = get_party(username)
-                except:
-                    st.session_state.party_filter = None
-
-                # Save cookie → browser persistent login
-                set_cookie("logged_user", username)
-
-                st.success("Logged in successfully!")
-                st.rerun()
-
+            st.write(f"DEBUG: Login button clicked for user: {username}")
+            
+            # Add validation
+            if not username or not password:
+                st.error("Please enter both username and password")
+                st.write("DEBUG: Missing username or password")
             else:
-                st.error("Invalid username or password")
+                st.write(f"DEBUG: Calling authenticate_user for: {username}")
+                auth_result = authenticate_user(username, password)
+                st.write(f"DEBUG: Authentication result: {auth_result}")
+                
+                if auth_result:
+                    st.session_state.authenticated = True
+                    st.session_state.user_role = username
+                    
+                    # Fetch party filter
+                    try:
+                        st.write("DEBUG: Fetching party filter...")
+                        party = get_party(username)
+                        st.session_state.party_filter = party
+                        st.write(f"DEBUG: Party filter set to: {party}")
+                    except Exception as e:
+                        st.error(f"Error fetching party: {e}")
+                        st.session_state.party_filter = None
+
+                    # Save cookie → browser persistent login
+                    try:
+                        st.write("DEBUG: Setting cookie...")
+                        set_cookie("logged_user", username)
+                        st.write("DEBUG: Cookie set successfully")
+                    except Exception as e:
+                        st.error(f"Error setting cookie: {e}")
+
+                    st.success("Logged in successfully!")
+                    st.rerun()
+
+                else:
+                    st.error("Invalid username or password")
+                    st.write("DEBUG: Authentication failed")
     else:
         st.success(f"Logged in as {st.session_state.user_role}")
 

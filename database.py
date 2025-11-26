@@ -6,21 +6,47 @@ from firebase_admin import credentials, firestore
 
 def get_db_connection():
     print("Connecting to Firestore database...")
+    st.write("DEBUG: Attempting to connect to Firestore...")  # Cloud-visible debug
+    
     try:
-        print(st.secrets["firebase"])
+        # Check if secrets exist
+        if "firebase" not in st.secrets:
+            error_msg = "Firebase secrets not found in st.secrets"
+            print(error_msg)
+            st.error(error_msg)
+            return None
+            
+        print("Firebase secrets found")
+        st.write("DEBUG: Firebase secrets found")
+        
         firebase_credentials = dict(st.secrets["firebase"])  # Convert secrets to dict
+        print(f"Firebase credentials keys: {list(firebase_credentials.keys())}")
+        st.write(f"DEBUG: Firebase credentials keys: {list(firebase_credentials.keys())}")
 
         # Initialize Firebase if not already initialized
         if not firebase_admin._apps:
+            print("Initializing Firebase app...")
+            st.write("DEBUG: Initializing Firebase app...")
             cred = credentials.Certificate(firebase_credentials)  # Use dictionary directly
             firebase_admin.initialize_app(cred)
+            print("Firebase app initialized successfully")
+            st.write("DEBUG: Firebase app initialized successfully")
+        else:
+            print("Firebase app already initialized")
+            st.write("DEBUG: Firebase app already initialized")
 
         # Connect to Firestore
+        print("Creating Firestore client...")
+        st.write("DEBUG: Creating Firestore client...")
         db = firestore.client()
+        print("Firestore client created successfully")
+        st.write("DEBUG: Firestore client created successfully")
         return db
 
     except Exception as e:
-        print(f"Error connecting to Firestore: {e}")
+        error_msg = f"Error connecting to Firestore: {e}"
+        print(error_msg)
+        st.error(error_msg)
         return None
 
 def init_database():
@@ -57,13 +83,45 @@ def init_database():
 
 def get_pass(username):
     print("Fetching password for user:", username)
+    st.write(f"DEBUG: Fetching password for user: {username}")
+    
     db = get_db_connection()
     if db is None:
-        print("Database connection failed.")
-        return False, 0
-    user_ref = db.collection("users").document(username)
-    user_data = user_ref.get().to_dict()
-    return user_data['pass']
+        error_msg = "Database connection failed in get_pass"
+        print(error_msg)
+        st.error(error_msg)
+        return None
+        
+    try:
+        print(f"Querying Firestore for user: {username}")
+        st.write(f"DEBUG: Querying Firestore for user: {username}")
+        
+        user_ref = db.collection("users").document(username)
+        user_doc = user_ref.get()
+        
+        if not user_doc.exists:
+            error_msg = f"User {username} not found in Firestore"
+            print(error_msg)
+            st.error(error_msg)
+            return None
+            
+        user_data = user_doc.to_dict()
+        print(f"User data retrieved for {username}: {list(user_data.keys()) if user_data else 'None'}")
+        st.write(f"DEBUG: User data keys for {username}: {list(user_data.keys()) if user_data else 'None'}")
+        
+        if 'pass' not in user_data:
+            error_msg = f"Password field not found for user {username}"
+            print(error_msg)
+            st.error(error_msg)
+            return None
+            
+        return user_data['pass']
+        
+    except Exception as e:
+        error_msg = f"Error fetching password for {username}: {e}"
+        print(error_msg)
+        st.error(error_msg)
+        return None
 
 def get_party(username):
     db = get_db_connection()
