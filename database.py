@@ -6,6 +6,7 @@ from firebase_admin import credentials, firestore
 
 def get_db_connection():
     try:
+        print(st.secrets["firebase"])
         firebase_credentials = dict(st.secrets["firebase"])  # Convert secrets to dict
 
         # Initialize Firebase if not already initialized
