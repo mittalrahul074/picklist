@@ -21,6 +21,7 @@ def authenticate_user(username: str, password: str) -> bool:
     """
     Return True if username and password match the DB.
     """
+    print("Authenticating user:", username)
     try:
         stored_password = get_pass(username)
         return stored_password == password
