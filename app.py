@@ -1,5 +1,10 @@
 import os
 import streamlit as st
+import warnings
+
+# Suppress the st.cache deprecation warning if it's coming from dependencies
+warnings.filterwarnings("ignore", message=".*st.cache.*deprecated.*")
+
 from auth import authenticate_user, logout_user, set_cookie, get_cookie
 from admin import render_admin_panel
 from picker_validator import render_picker_validator_panel
@@ -17,6 +22,32 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+# -------------------------------------------------------------------
+# BASIC CONNECTIVITY TEST
+# -------------------------------------------------------------------
+# Add this at the very top to test if debug messages work
+st.write("🔧 **DEBUG MODE ACTIVE** - App is loading...")
+print("App starting - this should appear in logs")
+
+# Test secrets availability
+try:
+    if "auth_secret" in st.secrets:
+        st.write("✅ Auth secret found")
+    else:
+        st.write("❌ Auth secret missing")
+        
+    if "firebase" in st.secrets:
+        st.write("✅ Firebase secrets found")
+        firebase_keys = list(st.secrets["firebase"].keys())
+        st.write(f"📋 Firebase keys: {firebase_keys}")
+    else:
+        st.write("❌ Firebase secrets missing")
+        
+except Exception as e:
+    st.write(f"❌ Error checking secrets: {e}")
+
+st.write("---")
 
 # -------------------------------------------------------------------
 # SESSION INITIALIZATION
@@ -74,26 +105,48 @@ with st.sidebar:
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
         print ("Username:", username)
+        
         if st.button("Login"):
             print("Attempting login for user:", username)
-            if authenticate_user(username, password):
-                st.session_state.authenticated = True
-                st.session_state.user_role = username
-                
-                # Fetch party filter
-                try:
-                    st.session_state.party_filter = get_party(username)
-                except:
-                    st.session_state.party_filter = None
-
-                # Save cookie → browser persistent login
-                set_cookie("logged_user", username)
-
-                st.success("Logged in successfully!")
-                st.rerun()
-
+            st.write(f"DEBUG: Login button clicked for user: {username}")
+            
+            # Add validation
+            if not username or not password:
+                st.error("Please enter both username and password")
+                st.write("DEBUG: Missing username or password")
             else:
-                st.error("Invalid username or password")
+                st.write(f"DEBUG: Calling authenticate_user for: {username}")
+                auth_result = authenticate_user(username, password)
+                st.write(f"DEBUG: Authentication result: {auth_result}")
+                
+                if auth_result:
+                    st.session_state.authenticated = True
+                    st.session_state.user_role = username
+                    
+                    # Fetch party filter
+                    try:
+                        st.write("DEBUG: Fetching party filter...")
+                        party = get_party(username)
+                        st.session_state.party_filter = party
+                        st.write(f"DEBUG: Party filter set to: {party}")
+                    except Exception as e:
+                        st.error(f"Error fetching party: {e}")
+                        st.session_state.party_filter = None
+
+                    # Save cookie → browser persistent login
+                    try:
+                        st.write("DEBUG: Setting cookie...")
+                        set_cookie("logged_user", username)
+                        st.write("DEBUG: Cookie set successfully")
+                    except Exception as e:
+                        st.error(f"Error setting cookie: {e}")
+
+                    st.success("Logged in successfully!")
+                    st.rerun()
+
+                else:
+                    st.error("Invalid username or password")
+                    st.write("DEBUG: Authentication failed")
     else:
         st.success(f"Logged in as {st.session_state.user_role}")
 
