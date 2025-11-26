@@ -8,3 +8,4 @@ google-auth
 google-auth-oauthlib
 plotly
 streamlit-authenticator
+streamlit-cookies-manager
