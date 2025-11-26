@@ -50,7 +50,8 @@ with st.sidebar:
     if username:
         st.success(f"Welcome back, {username}!")
         st.session_state.user_role = username
-        st.session_state.party_filter = get_party(username)
+        if not st.session_state.party_filter:
+            st.session_state.party_filter = get_party(username)
         st.session_state.authenticated = True
     
     if not st.session_state.authenticated:
@@ -78,15 +79,15 @@ with st.sidebar:
         if get_party(st.session_state.user_role) == 'Both':
             current_filter = st.session_state.get("party_filter", "Both")
 
-            party_filter = st.selectbox(
+            old_party_filter = st.selectbox(
                 "Select Party",
                 options=["Both", "RS", "Kangan"],
                 index=["Both", "RS", "Kangan"].index(current_filter)
             )
 
-            if party_filter != current_filter:
-                st.session_state.party_filter = party_filter
-                print("Party filter changed to:", party_filter)
+            if old_party_filter != current_filter:
+                st.session_state.party_filter = old_party_filter
+                print("Party filter changed to:", old_party_filter)
                 st.rerun()  # 🔥 reload UI + reload DB queries
 
             st.markdown("---")
