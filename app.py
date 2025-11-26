@@ -20,6 +20,9 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+if "party_filter" not in st.session_state:
+    st.session_state.party_filter = None
+
 # Load custom CSS
 with open("assets/styles.css") as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
