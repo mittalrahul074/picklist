@@ -53,21 +53,21 @@ def authenticate_user(username: str, password: str) -> bool:
     Return True if username and password match the DB.
     """
     print("Authenticating user:", username)
-    st.write(f"DEBUG: Attempting to authenticate user: {username}")  # Cloud-visible debug
+    # st.write(f"DEBUG: Attempting to authenticate user: {username}")  # Cloud-visible debug
     
     try:
         stored_password = get_pass(username)
         print(f"Retrieved password for {username}: {stored_password}")
-        st.write(f"DEBUG: Retrieved password for {username}: {bool(stored_password)}")  # Don't show actual password
+        # st.write(f"DEBUG: Retrieved password for {username}: {bool(stored_password)}")  # Don't show actual password
         
         result = stored_password == password
         print(f"Authentication result for {username}: {result}")
-        st.write(f"DEBUG: Authentication result for {username}: {result}")
+        # st.write(f"DEBUG: Authentication result for {username}: {result}")
         
         return result
     except Exception as e:
         print("AUTH ERROR:", e)
-        st.error(f"Authentication error: {str(e)}")  # Show error in UI
+        st.error(f"Authentication error: {str(e)}")  # Keep error messages for troubleshooting
         return False
 
 
