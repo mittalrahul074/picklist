@@ -84,16 +84,26 @@ if os.path.exists(css_path):
 # -------------------------------------------------------------------
 # AUTO-LOGIN FROM COOKIE
 # -------------------------------------------------------------------
-cookie_user = get_cookie("logged_user")
-
-if cookie_user and not st.session_state.authenticated:
-    # Auto-login user
-    st.session_state.authenticated = True
-    st.session_state.user_role = cookie_user
-    try:
-        st.session_state.party_filter = get_party(cookie_user)
-    except:
-        st.session_state.party_filter = None
+try:
+    cookie_user = get_cookie("logged_user")
+    st.write(f"🍪 DEBUG: Cookie user: {cookie_user}")
+    
+    if cookie_user and not st.session_state.authenticated:
+        st.write("🔄 DEBUG: Attempting auto-login from cookie...")
+        # Auto-login user
+        st.session_state.authenticated = True
+        st.session_state.user_role = cookie_user
+        try:
+            st.session_state.party_filter = get_party(cookie_user)
+            st.write("✅ DEBUG: Auto-login successful")
+        except Exception as e:
+            st.write(f"⚠️ DEBUG: Error getting party for auto-login: {e}")
+            st.session_state.party_filter = "Both"
+    elif not cookie_user:
+        st.write("🍪 DEBUG: No cookie found, manual login required")
+except (Exception, SystemExit) as e:
+    st.write(f"⚠️ DEBUG: Cookie auto-login failed: {e}")
+    # Continue without auto-login
 
 # -------------------------------------------------------------------
 # SIDEBAR LOGIN UI
@@ -138,11 +148,14 @@ with st.sidebar:
 
                     # Save cookie → browser persistent login
                     try:
-                        st.write("DEBUG: Setting cookie...")
-                        set_cookie("logged_user", username)
-                        st.write("DEBUG: Cookie set successfully")
-                    except Exception as e:
-                        st.error(f"Error setting cookie: {e}")
+                        st.write("🍪 DEBUG: Setting cookie...")
+                        cookie_success = set_cookie("logged_user", username)
+                        if cookie_success:
+                            st.write("✅ DEBUG: Cookie set successfully")
+                        else:
+                            st.write("⚠️ DEBUG: Cookie setting failed, but login will continue")
+                    except (Exception, SystemExit) as e:
+                        st.write(f"⚠️ DEBUG: Error setting cookie: {e}, but login will continue")
 
                     st.success("Logged in successfully!")
                     st.rerun()

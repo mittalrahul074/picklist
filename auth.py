@@ -20,8 +20,8 @@ def init_cookies():
         if "auth_secret" not in st.secrets:
             error_msg = "auth_secret not found in st.secrets"
             print(error_msg)
-            st.error(error_msg)
-            st.stop()
+            st.warning("⚠️ Cookie authentication not available - auth_secret missing")
+            return None
         
         cookies = EncryptedCookieManager(
             prefix="oms_",
@@ -30,11 +30,11 @@ def init_cookies():
         
         print("Cookie manager created, checking if ready...")
         
-        # Must stop until cookie manager is ready
+        # Check if cookie manager is ready
         if not cookies.ready():
-            print("Cookie manager not ready, stopping...")
-            st.info("🔄 Initializing secure session... Please wait.")
-            st.stop()
+            print("Cookie manager not ready")
+            st.info("🔄 Cookie session initializing... Login will work without persistent sessions.")
+            return None
         
         print("Cookie manager ready!")
         return cookies
@@ -42,8 +42,8 @@ def init_cookies():
     except Exception as e:
         error_msg = f"Error initializing cookie manager: {e}"
         print(error_msg)
-        st.error(error_msg)
-        st.stop()
+        st.warning("⚠️ Cookie authentication not available - login will work without persistent sessions")
+        return None
 
 # ---------------------------------------------------------------------
 # AUTHENTICATION LOGIC
@@ -72,20 +72,52 @@ def authenticate_user(username: str, password: str) -> bool:
 
 
 def set_cookie(name: str, value: str):
-    cookies_manager = init_cookies()
-    cookies_manager[name] = value
-    cookies_manager.save()  # write to user's browser
+    try:
+        cookies_manager = init_cookies()
+        if cookies_manager is None:
+            print("Cookie manager not available for set_cookie")
+            return False
+        if not cookies_manager.ready():
+            print("Cookie manager not ready for set_cookie")
+            return False
+        cookies_manager[name] = value
+        cookies_manager.save()  # write to user's browser
+        return True
+    except Exception as e:
+        print(f"Error setting cookie {name}: {e}")
+        return False
 
 
 def get_cookie(name: str):
-    cookies_manager = init_cookies()
-    return cookies_manager.get(name)
+    try:
+        cookies_manager = init_cookies()
+        if cookies_manager is None:
+            print("Cookie manager not available for get_cookie")
+            return None
+        if not cookies_manager.ready():
+            print("Cookie manager not ready for get_cookie")
+            return None
+        return cookies_manager.get(name)
+    except Exception as e:
+        print(f"Error getting cookie {name}: {e}")
+        return None
 
 
 def clear_cookie(name: str):
-    cookies_manager = init_cookies()
-    cookies_manager[name] = ""
-    cookies_manager.save()
+    try:
+        cookies_manager = init_cookies()
+        if cookies_manager is None:
+            print("Cookie manager not available for clear_cookie")
+            return False
+        if not cookies_manager.ready():
+            print("Cookie manager not ready for clear_cookie")
+            return False
+        cookies_manager[name] = ""
+        cookies_manager.save()
+        return True
+    except Exception as e:
+        print(f"Error clearing cookie {name}: {e}")
+        return False
 
 
 def logout_user():
