@@ -26,28 +26,28 @@ st.set_page_config(
 # -------------------------------------------------------------------
 # BASIC CONNECTIVITY TEST
 # -------------------------------------------------------------------
-# Add this at the very top to test if debug messages work
-st.write("🔧 **DEBUG MODE ACTIVE** - App is loading...")
-print("App starting - this should appear in logs")
+# # Add this at the very top to test if debug messages work
+# st.write("🔧 **DEBUG MODE ACTIVE** - App is loading...")
+# print("App starting - this should appear in logs")
 
-# Test secrets availability
-try:
-    if "auth_secret" in st.secrets:
-        st.write("✅ Auth secret found")
-    else:
-        st.write("❌ Auth secret missing")
+# # Test secrets availability
+# try:
+#     if "auth_secret" in st.secrets:
+#         st.write("✅ Auth secret found")
+#     else:
+#         st.write("❌ Auth secret missing")
         
-    if "firebase" in st.secrets:
-        st.write("✅ Firebase secrets found")
-        firebase_keys = list(st.secrets["firebase"].keys())
-        st.write(f"📋 Firebase keys: {firebase_keys}")
-    else:
-        st.write("❌ Firebase secrets missing")
+#     if "firebase" in st.secrets:
+#         st.write("✅ Firebase secrets found")
+#         firebase_keys = list(st.secrets["firebase"].keys())
+#         st.write(f"📋 Firebase keys: {firebase_keys}")
+#     else:
+#         st.write("❌ Firebase secrets missing")
         
-except Exception as e:
-    st.write(f"❌ Error checking secrets: {e}")
+# except Exception as e:
+#     st.write(f"❌ Error checking secrets: {e}")
 
-st.write("---")
+# st.write("---")
 
 # -------------------------------------------------------------------
 # SESSION INITIALIZATION
@@ -86,24 +86,25 @@ if os.path.exists(css_path):
 # -------------------------------------------------------------------
 try:
     cookie_user = get_cookie("logged_user")
-    st.write(f"🍪 DEBUG: Cookie user: {cookie_user}")
+    # st.write(f"🍪 DEBUG: Cookie user: {cookie_user}")
     
     if cookie_user and not st.session_state.authenticated:
-        st.write("🔄 DEBUG: Attempting auto-login from cookie...")
+        # st.write("🔄 DEBUG: Attempting auto-login from cookie...")
         # Auto-login user
         st.session_state.authenticated = True
         st.session_state.user_role = cookie_user
         try:
             st.session_state.party_filter = get_party(cookie_user)
-            st.write("✅ DEBUG: Auto-login successful")
+            # st.write("✅ DEBUG: Auto-login successful")
         except Exception as e:
-            st.write(f"⚠️ DEBUG: Error getting party for auto-login: {e}")
+            # st.write(f"⚠️ DEBUG: Error getting party for auto-login: {e}")
             st.session_state.party_filter = "Both"
-    elif not cookie_user:
-        st.write("🍪 DEBUG: No cookie found, manual login required")
+    # elif not cookie_user:
+    #     st.write("🍪 DEBUG: No cookie found, manual login required")
 except (Exception, SystemExit) as e:
-    st.write(f"⚠️ DEBUG: Cookie auto-login failed: {e}")
+    # st.write(f"⚠️ DEBUG: Cookie auto-login failed: {e}")
     # Continue without auto-login
+    pass
 
 # -------------------------------------------------------------------
 # SIDEBAR LOGIN UI
@@ -118,16 +119,16 @@ with st.sidebar:
         
         if st.button("Login"):
             print("Attempting login for user:", username)
-            st.write(f"DEBUG: Login button clicked for user: {username}")
+            # st.write(f"DEBUG: Login button clicked for user: {username}")
             
             # Add validation
             if not username or not password:
                 st.error("Please enter both username and password")
-                st.write("DEBUG: Missing username or password")
+                # st.write("DEBUG: Missing username or password")
             else:
-                st.write(f"DEBUG: Calling authenticate_user for: {username}")
+                # st.write(f"DEBUG: Calling authenticate_user for: {username}")
                 auth_result = authenticate_user(username, password)
-                st.write(f"DEBUG: Authentication result: {auth_result}")
+                # st.write(f"DEBUG: Authentication result: {auth_result}")
                 
                 if auth_result:
                     st.session_state.authenticated = True
@@ -135,34 +136,35 @@ with st.sidebar:
                     
                     # Fetch party filter
                     try:
-                        st.write("🔍 DEBUG: Fetching party filter...")
+                        # st.write("🔍 DEBUG: Fetching party filter...")
                         party = get_party(username)
                         st.session_state.party_filter = party
-                        st.write(f"✅ DEBUG: Party filter set to: {party}")
+                        # st.write(f"✅ DEBUG: Party filter set to: {party}")
                     except Exception as e:
                         error_msg = f"❌ Error fetching party: {e}"
                         print(error_msg)
-                        st.error(error_msg)
+                        # st.error(error_msg)
                         st.session_state.party_filter = "Both"  # Default fallback
-                        st.write("🔄 DEBUG: Using default party filter: Both")
+                        # st.write("🔄 DEBUG: Using default party filter: Both")
 
                     # Save cookie → browser persistent login
                     try:
-                        st.write("🍪 DEBUG: Setting cookie...")
+                        # st.write("🍪 DEBUG: Setting cookie...")
                         cookie_success = set_cookie("logged_user", username)
-                        if cookie_success:
-                            st.write("✅ DEBUG: Cookie set successfully")
-                        else:
-                            st.write("⚠️ DEBUG: Cookie setting failed, but login will continue")
+                        # if cookie_success:
+                        #     st.write("✅ DEBUG: Cookie set successfully")
+                        # else:
+                        #     st.write("⚠️ DEBUG: Cookie setting failed, but login will continue")
                     except (Exception, SystemExit) as e:
-                        st.write(f"⚠️ DEBUG: Error setting cookie: {e}, but login will continue")
+                        # st.write(f"⚠️ DEBUG: Error setting cookie: {e}, but login will continue")
+                        pass
 
                     st.success("Logged in successfully!")
                     st.rerun()
 
                 else:
                     st.error("Invalid username or password")
-                    st.write("DEBUG: Authentication failed")
+                    # st.write("DEBUG: Authentication failed")
     else:
         st.success(f"Logged in as {st.session_state.user_role}")
 

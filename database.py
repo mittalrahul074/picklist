@@ -12,7 +12,7 @@ def get_db_connection():
         if "firebase" not in st.secrets:
             error_msg = "❌ Firebase secrets not found in st.secrets"
             print(error_msg)
-            st.error(error_msg)
+            # st.error(error_msg)
             return None
             
         print("Firebase secrets found")
@@ -38,7 +38,7 @@ def get_db_connection():
     except Exception as e:
         error_msg = f"❌ Error connecting to Firestore: {e}"
         print(error_msg)
-        st.error(error_msg)
+        # st.error(error_msg)
         return None
 
 def init_database():
@@ -80,7 +80,7 @@ def get_pass(username):
     if db is None:
         error_msg = "❌ Database connection failed in get_pass"
         print(error_msg)
-        st.error(error_msg)
+        # st.error(error_msg)
         return None
         
     try:
@@ -92,7 +92,7 @@ def get_pass(username):
         if not user_doc.exists:
             error_msg = f"❌ User {username} not found in Firestore"
             print(error_msg)
-            st.error(error_msg)
+            # st.error(error_msg)
             return None
             
         user_data = user_doc.to_dict()
@@ -101,7 +101,7 @@ def get_pass(username):
         if 'pass' not in user_data:
             error_msg = f"❌ Password field not found for user {username}"
             print(error_msg)
-            st.error(error_msg)
+            # st.error(error_msg)
             return None
             
         print(f"✅ Password retrieved successfully for {username}")
@@ -110,23 +110,23 @@ def get_pass(username):
     except Exception as e:
         error_msg = f"❌ Error fetching password for {username}: {e}"
         print(error_msg)
-        st.error(error_msg)
+        # st.error(error_msg)
         return None
 
 def get_party(username):
     print(f"Fetching party for user: {username}")
-    st.write(f"🔍 DEBUG: Fetching party for user: {username}")
+    # st.write(f"🔍 DEBUG: Fetching party for user: {username}")
     
     db = get_db_connection()
     if db is None:
         error_msg = "❌ Database connection failed in get_party"
         print(error_msg)
-        st.error(error_msg)
+        # st.error(error_msg)
         return "Both"  # Default fallback
         
     try:
         print(f"Querying Firestore for user party: {username}")
-        st.write(f"🔍 DEBUG: Querying Firestore for user party: {username}")
+        # st.write(f"🔍 DEBUG: Querying Firestore for user party: {username}")
         
         user_ref = db.collection("users").document(username)
         user_doc = user_ref.get()
@@ -134,22 +134,22 @@ def get_party(username):
         if not user_doc.exists:
             error_msg = f"❌ User {username} not found in Firestore for party lookup"
             print(error_msg)
-            st.error(error_msg)
+            # st.error(error_msg)
             return "Both"  # Default fallback
             
         user_data = user_doc.to_dict()
         print(f"User data for party lookup: {list(user_data.keys()) if user_data else 'None'}")
-        st.write(f"🔍 DEBUG: User data keys for party: {list(user_data.keys()) if user_data else 'None'}")
+        # st.write(f"🔍 DEBUG: User data keys for party: {list(user_data.keys()) if user_data else 'None'}")
         
         if not user_data or 'party' not in user_data:
             error_msg = f"❌ Party field not found for user {username}"
             print(error_msg)
-            st.error(error_msg)
+            # st.error(error_msg)
             return "Both"  # Default fallback
             
         party_value = user_data['party']
         print(f"Party value for {username}: {party_value}")
-        st.write(f"🔍 DEBUG: Party value for {username}: {party_value}")
+        # st.write(f"🔍 DEBUG: Party value for {username}: {party_value}")
         
         if party_value == 1:
             result = "Kangan"
@@ -159,17 +159,17 @@ def get_party(username):
             result = "Both"
         else:
             print(f"Unknown party value {party_value} for user {username}, defaulting to 'Both'")
-            st.warning(f"Unknown party value {party_value} for user {username}, defaulting to 'Both'")
+            # st.warning(f"Unknown party value {party_value} for user {username}, defaulting to 'Both'")
             result = "Both"
             
         print(f"✅ Party result for {username}: {result}")
-        st.write(f"✅ DEBUG: Party result for {username}: {result}")
+        # st.write(f"✅ DEBUG: Party result for {username}: {result}")
         return result
         
     except Exception as e:
         error_msg = f"❌ Error fetching party for {username}: {e}"
         print(error_msg)
-        st.error(error_msg)
+        # st.error(error_msg)
         return "Both"  # Default fallback
 
 def add_orders_to_db(orders_df, platform):
