@@ -36,7 +36,7 @@ def extract_order_data(file_buffer, platform):
 
             # remove canclled orders
             print("m")
-            cancle_df = df[df.iloc[:, 0].str.lower().isin(['cancelled','ready_to_ship'])]
+            cancle_df = df[df.iloc[:, 0].str.lower().isin(['cancelled'])]
             orders_cancel_df = pd.DataFrame({
                 'order_id': cancle_df.iloc[:, 1].copy(),
                 'sku': cancle_df.iloc[:, 5].copy(),
