@@ -45,6 +45,15 @@ def pick_sku(page_info):
         page_info['new_status'],
         st.session_state.user_role
     )
+    
+    if st.session_state.get("user_type") == 3:
+        # perform validation on the same picked orders
+        processed_quantity2, processed_order_ids = update_orders_for_sku(
+            sku, 
+            total_quantity, 
+            "validated",
+            st.session_state.user_role
+        )
 
     if processed_quantity == -1:
         st.toast(
