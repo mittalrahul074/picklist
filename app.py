@@ -11,7 +11,7 @@ from picker_validator import render_picker_validator_panel
 from validator import render_validator_panel
 from dashboard import render_dashboard
 from firestore_delete_app import render_delete_panel
-from database import init_database, get_party
+from database import init_database, get_party, get_user_type
 
 # -------------------------------------------------------------------
 # CONFIG
@@ -57,6 +57,7 @@ def init_state():
         "authenticated": False,
         "user_role": None,
         "party_filter": None,
+        "user_type": None,
         "page": "dashboard",
         "db_initialized": False,
     }
@@ -93,6 +94,7 @@ try:
         # Auto-login user
         st.session_state.authenticated = True
         st.session_state.user_role = cookie_user
+        st.session_state.user_type = get_user_type(cookie_user)
         try:
             st.session_state.party_filter = get_party(cookie_user)
             # st.write("✅ DEBUG: Auto-login successful")
@@ -133,6 +135,7 @@ with st.sidebar:
                 if auth_result:
                     st.session_state.authenticated = True
                     st.session_state.user_role = username
+                    st.session_state.user_type = get_user_type(username)
                     
                     # Fetch party filter
                     try:
