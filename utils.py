@@ -53,7 +53,7 @@ def extract_order_data(file_buffer, platform):
             
             # Process cancelled orders
             print("Processing cancelled orders")
-            cancelled_mask = df.iloc[:, 0].str.lower() == 'cancelled'
+            cancelled_mask = df.iloc[:, 0].str.lower().isin(['cancelled','shipped','delivered'])
             cancle_df = df[cancelled_mask].copy()
             
             if not cancle_df.empty:
@@ -95,8 +95,11 @@ def extract_order_data(file_buffer, platform):
                 'order_id': df.iloc[:, 1].astype(str),
                 'sku': df.iloc[:, 5].astype(str),
                 'quantity': pd.to_numeric(df.iloc[:, 7], errors='coerce').fillna(1).astype(int),
-                'dispatch_date': df.iloc[:, 2].astype(str)
+                'dispatch_date': df.iloc[:, 2].astype(str),
+                'status': 'new'
             })
+
+            print(f"DEBUG:  Dispatch dates before processing: {orders_df['dispatch_date']}")
             
             print(f"Created orders_df with {len(orders_df)} pending/ready_to_ship orders")
             
@@ -106,13 +109,15 @@ def extract_order_data(file_buffer, platform):
             
             # Remove rows with invalid dispatch dates
             orders_df = orders_df.dropna(subset=['dispatch_date'])
+            print(f"DEBUG: Dispatch dates after processing: {orders_df['dispatch_date']}")
                 
         elif platform == 'flipkart':
             orders_df = pd.DataFrame({
                 'order_id': df.iloc[:, 3].copy(),
                 'sku': df.iloc[:, 8].copy(),
                 'quantity': df.iloc[:, 18].copy(),
-                'dispatch_date': df.iloc[:, 28].copy()
+                'dispatch_date': df.iloc[:, 28].copy(),
+                'status': 'new'
             })
             
             orders_df['dispatch_date'] = pd.to_datetime(
@@ -126,7 +131,7 @@ def extract_order_data(file_buffer, platform):
 
         # Convert dispatch_date to string format "DD-MM-YYYY"
         orders_df['dispatch_date'] = orders_df['dispatch_date'].dt.strftime("%d-%m-%Y")
-
+        print(f"DEBUG: Final dispatch dates: {orders_df['dispatch_date']}")
         # Rest of your processing remains the same...
         orders_df['status'] = 'new'
         
