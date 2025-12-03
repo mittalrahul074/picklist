@@ -388,32 +388,18 @@ def get_orders_grouped_by_sku(orders_df, status=None):
         raise
 
 def get_product_image_url(sku):
-    print("Fetching product image for SKU:", sku)
     db = get_db_connection()
     if db is None:
         return None
     
-    print("Incoming SKU:", sku, repr(sku))
-    print("Lower SKU:", sku.lower(), repr(sku.lower()))
-
-    # Fetch all products for debugging
-    docs = db.collection("products").stream()
-    for d in docs:
-        data = d.to_dict()
-        print("DB SKU:", data.get("sku"), repr(data.get("sku")))
-
     sku_lower = sku.lower().strip()
-    # products collection structure:
-    # products/{unique_id} where document contains { sku: ..., img_url: ... }
     products_ref = db.collection("products").where("sku", "==", sku_lower).limit(1)
     docs = list(products_ref.stream())
     
     if not docs:
         return None
-
-    data = docs[0].to_dict()
-    print("Product data retrieved:", data)
-    return data.get("img_url")
+    
+    return docs[0].to_dict().get("img_url")
 
 def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
     """
