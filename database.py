@@ -311,8 +311,8 @@ def get_orders_from_db(status=None):
 
     df = pd.DataFrame(order_list) if order_list else pd.DataFrame()
 
-    if "dispatch_date" in df.columns:
-        df["dispatch_date"] = pd.to_datetime(df["dispatch_date"], format="%d-%m-%Y", dayfirst=True, errors="coerce")
+    # if "dispatch_date" in df.columns:
+    #     df["dispatch_date"] = pd.to_datetime(df["dispatch_date"], format="%d-%m-%Y", dayfirst=True, errors="coerce")
 
     return df
 
@@ -344,7 +344,7 @@ def get_orders_grouped_by_sku(orders_df, status=None):
         # print("Raw dispatch_date values:", orders_df["dispatch_date"].head(5).tolist())
 
         # Convert dispatch_date to datetime format
-        orders_df["dispatch_date"] = pd.to_datetime(orders_df["dispatch_date"], dayfirst=True, errors="coerce")
+        # orders_df["dispatch_date"] = pd.to_datetime(orders_df["dispatch_date"], dayfirst=True, errors="coerce")
 
         # print("After conversion, dispatch_date sample:\n", orders_df[['dispatch_date']].head())
 
@@ -365,7 +365,7 @@ def get_orders_grouped_by_sku(orders_df, status=None):
             grouped = sub_df.groupby("dispatch_date")["quantity"].sum().reset_index()
             return [
                 {
-                    "date": row["dispatch_date"].strftime("%d %b %Y"),
+                    "date": row["dispatch_date"],
                     "quantity": int(row["quantity"])
                 }
                 for _, row in grouped.iterrows()
