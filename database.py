@@ -316,14 +316,14 @@ def get_orders_from_db(status=None):
 
     return df
 
-def update_status(order_id,status):
+def update_status(order_id,status, platform):
     db = get_db_connection()
     orders_ref = db.collection("orders").document(order_id)
 
     order_data = orders_ref.get().to_dict()  # Fetch order data safely
     
     if order_data:
-        orders_ref.update({"status": status, "updated_at": datetime.utcnow()})
+        orders_ref.update({"status": status, "updated_at": datetime.utcnow(), "validated_by": platform})
         print(f"✅ Order {order_id} {status}.")
     else:
         print(f"⚠️ Order {order_id} not found in Firestore.")
@@ -417,6 +417,7 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
     old_status = (
         "new" if new_status == "picked" else
         "picked" if new_status == "validated" else
+        "picked" if new_status == "cancelled" else
         None
     )
 
@@ -453,7 +454,10 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
             }
 
             if user:
-                update_fields[f"{new_status}_by"] = user
+                if new_status == "cancelled":
+                    update_fields["validated_by"] = user
+                else:
+                    update_fields[f"{new_status}_by"] = user
 
             transaction.update(ref, update_fields)
             processed_ids.append(order.id)

@@ -76,13 +76,42 @@ def render_validator_panel():
         sku = row["sku"]
         total_qty = int(row["total_quantity"])
 
+            
         # Parse dispatch list if JSON string
         dispatch_list = row["dispatch_breakdown"]
         if isinstance(dispatch_list, str):
             dispatch_list = json.loads(dispatch_list)
 
-        st.subheader(f"{sl_no}. SKU: {sku}")
-        st.caption(f"Total Quantity: {total_qty}")
+        # SKU HEADER WITH CANCEL BUTTON
+        sku_col, btn_col = st.columns([6, 2])
+
+        with sku_col:
+            st.subheader(f"{sl_no}. SKU: {sku}")
+            st.caption(f"Total Quantity: {total_qty}")
+
+        with btn_col:
+            cancel_unique_key = f"cancel_{sku}_{sl_no}"
+            if st.button("❌ Cancel", key=cancel_unique_key):
+                # Cancel all picked orders for this SKU
+                cancel_qty, order_ids = update_orders_for_sku(
+                    sku,
+                    total_qty,  # large number = cancel all picked units
+                    "cancelled",
+                    st.session_state.user_role
+                )
+
+                if cancel_qty > 0:
+                    st.toast(f"🚫 Cancelled {cancel_qty} units for {sku}.", icon="⚠️")
+                else:
+                    st.toast(f"No picked orders left to cancel for {sku}.", icon="⚠️")
+
+                # Clear cached orders
+                if "orders_df" in st.session_state:
+                    del st.session_state["orders_df"]
+
+                time.sleep(0.5)
+                st.rerun()
+
 
         # ROW HEADER
         cols = st.columns([2, 2, 2])
