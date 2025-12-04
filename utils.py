@@ -79,7 +79,7 @@ def extract_order_data(file_buffer, platform):
                         order_id = str(row["order_id"])
                         status = str(row["status"])
                         if order_id and order_id != 'nan':
-                            update_status(order_id, status)
+                            update_status(order_id, status, platform)
                     except Exception as e:
                         print(f"Error updating cancelled order {row.get('order_id', 'unknown')}: {e}")
 
