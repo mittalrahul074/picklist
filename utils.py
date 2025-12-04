@@ -24,10 +24,18 @@ def extract_order_data(file_buffer, platform):
     try:
         # Determine file type and read accordingly
         file_name = file_buffer.name.lower()
-        if file_name.endswith('.csv'):
-            df = pd.read_csv(file_buffer)
-        else:  # Excel file (.xlsx or .xls)
-            df = pd.read_excel(file_buffer)
+        if platform == 'meesho':
+            if file_name.endswith('.csv'):
+                df = pd.read_csv(file_buffer,dtype=str, keep_default_na=False)
+            else:  # Excel file (.xlsx or .xls)
+                df = pd.read_excel(file_buffer,dtype=str, keep_default_na=False)
+        elif platform == 'flipkart':
+            if file_name.endswith('.csv'):
+                df = pd.read_csv(file_buffer)
+            else:  # Excel file (.xlsx or .xls)
+                df = pd.read_excel(file_buffer)
+
+        print(df.iloc[:10, 2].tolist())
 
         # Validate that file was read successfully
         if df is None or df.empty:
@@ -104,8 +112,13 @@ def extract_order_data(file_buffer, platform):
             print(f"Created orders_df with {len(orders_df)} pending/ready_to_ship orders")
             
             # Convert to UTC first, then remove timezone
-            orders_df['dispatch_date'] = pd.to_datetime(orders_df['dispatch_date'], dayfirst=True, errors='coerce')
-            orders_df['dispatch_date'] = orders_df['dispatch_date'] + timedelta(days=2)
+
+            # orders_df['dispatch_date'] = pd.to_datetime(orders_df['dispatch_date'], dayfirst=True, errors='coerce')
+            # orders_df['dispatch_date'] = orders_df['dispatch_date'] + timedelta(days=2)
+
+            orders_df['dispatch_date'] = orders_df['dispatch_date'].apply(normalize_and_shift)
+
+            print(f"DEBUG: Dispatch dates after normalization: {orders_df['dispatch_date']}")
             
             # Remove rows with invalid dispatch dates
             orders_df = orders_df.dropna(subset=['dispatch_date'])
@@ -124,13 +137,13 @@ def extract_order_data(file_buffer, platform):
                 orders_df['dispatch_date'].astype(str), 
                 format="%b %d, %Y %H:%M:%S", errors='coerce'
             )
+            orders_df['dispatch_date'] = orders_df['dispatch_date'].dt.strftime("%d-%m-%Y")
 
         else:
             st.error("Invalid platform selected")
             return None
 
         # Convert dispatch_date to string format "DD-MM-YYYY"
-        orders_df['dispatch_date'] = orders_df['dispatch_date'].dt.strftime("%d-%m-%Y")
         print(f"DEBUG: Final dispatch dates: {orders_df['dispatch_date']}")
         # Rest of your processing remains the same...
         orders_df['status'] = 'new'
@@ -237,3 +250,27 @@ def export_orders_to_excel():
         orders_df.to_excel(writer, index=False)
     
     return output.getvalue()
+
+def normalize_and_shift(raw):
+    raw = str(raw).strip()
+
+    # Case 1: ISO format (2025-12-03)
+    if len(raw) == 10 and raw[4] == '-' and raw[7] == '-':
+        try:
+            dt = datetime.strptime(raw, "%Y-%m-%d")
+            dt = dt + timedelta(days=2)
+            return dt.strftime("%d-%m-%Y")   # output in DD-MM-YYYY
+        except:
+            pass
+
+    # Case 2: DD-MM-YYYY (03-12-2025)
+    if len(raw) == 10 and raw[2] == '-' and raw[5] == '-':
+        try:
+            dt = datetime.strptime(raw, "%d-%m-%Y")
+            dt = dt + timedelta(days=2)
+            return dt.strftime("%d-%m-%Y")
+        except:
+            pass
+
+    # Fallback: return raw value
+    return raw
