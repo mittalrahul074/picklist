@@ -83,7 +83,7 @@ def render_validator_panel():
             dispatch_list = json.loads(dispatch_list)
 
         # SKU HEADER WITH CANCEL BUTTON
-        sku_col, btn_col = st.columns([6, 2])
+        sku_col, btn_col,wng_btn = st.columns([4,2, 2])
 
         with sku_col:
             st.subheader(f"{sl_no}. SKU: {sku}")
@@ -104,6 +104,28 @@ def render_validator_panel():
                     st.toast(f"🚫 Cancelled {cancel_qty} units for {sku}.", icon="⚠️")
                 else:
                     st.toast(f"No picked orders left to cancel for {sku}.", icon="⚠️")
+
+                # Clear cached orders
+                if "orders_df" in st.session_state:
+                    del st.session_state["orders_df"]
+
+                time.sleep(0.5)
+                st.rerun()
+        with wng_btn:
+            wng_unique_key = f"wrong_{sku}_{sl_no}"
+            if st.button("❌ Wrong", key=wng_unique_key):
+                # Cancel all picked orders for this SKU
+                cancel_qty, order_ids = update_orders_for_sku(
+                    sku,
+                    total_qty,  # large number = cancel all picked units
+                    "wrong",
+                    st.session_state.user_role
+                )
+
+                if cancel_qty > 0:
+                    st.toast(f"🚫 Wrong {cancel_qty} units for {sku}.", icon="⚠️")
+                else:
+                    st.toast(f"No picked orders left to wrong for {sku}.", icon="⚠️")
 
                 # Clear cached orders
                 if "orders_df" in st.session_state:
