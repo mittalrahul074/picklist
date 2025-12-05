@@ -388,18 +388,22 @@ def get_orders_grouped_by_sku(orders_df, status=None):
         raise
 
 def get_product_image_url(sku):
-    db = get_db_connection()
-    if db is None:
+    try:
+        db = get_db_connection()
+        if db is None:
+            return None
+        
+        sku_lower = sku.lower().strip()
+        products_ref = db.collection("products").where("sku", "==", sku_lower).limit(1)
+        docs = list(products_ref.stream())
+        
+        if not docs:
+            return None
+        
+        return docs[0].to_dict().get("img_url")
+    except Exception as e:
+        print(f"Error fetching product image URL for SKU {sku}: {e}")
         return None
-    
-    sku_lower = sku.lower().strip()
-    products_ref = db.collection("products").where("sku", "==", sku_lower).limit(1)
-    docs = list(products_ref.stream())
-    
-    if not docs:
-        return None
-    
-    return docs[0].to_dict().get("img_url")
 
 def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
     """
