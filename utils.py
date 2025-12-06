@@ -243,7 +243,10 @@ def export_orders_to_excel():
 
     for col in ["created_at", "updated_at", "dispatch_date"]:
         if col in orders_df.columns:
-            orders_df[col] = pd.to_datetime(orders_df[col]).dt.strftime("%Y-%m-%d %H:%M:%S")
+            if col == "dispatch_date":
+                orders_df[col] = pd.to_datetime(orders_df[col], format="%d-%m-%Y", errors='coerce').dt.strftime("%d-%m-%Y")
+            else:
+                orders_df[col] = pd.to_datetime(orders_df[col], errors='coerce').dt.strftime("%Y-%m-%d %H:%M:%S")
     
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
