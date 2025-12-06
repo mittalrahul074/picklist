@@ -413,6 +413,8 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
 
     db = get_db_connection()
     if db is None:
+        print("❌ DEBUG: Database connection failed")
+        st.error("❌ Database connection failed")
         return 0, []
 
     transaction = db.transaction()
@@ -425,11 +427,18 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
         None
     )
 
+    print(f"🔍 DEBUG: old_status={old_status}, new_status={new_status}, sku={sku}, quantity={quantity_to_process}, user={user}")
+    st.write(f"🔍 DEBUG: old_status={old_status}, new_status={new_status}, sku={sku}")
+
     if old_status is None:
+        print("❌ DEBUG: old_status is None - invalid transition")
+        st.error("❌ Invalid status transition")
         return 0, []
 
     @firestore.transactional
     def process(transaction):
+        print(f"📝 DEBUG: Starting transaction for sku={sku}, old_status={old_status}")
+        
         # STEP 1 — READ orders safely inside transaction
         query = (
             db.collection("orders")
@@ -440,9 +449,13 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
         )
 
         orders = list(transaction.get(query))
+        print(f"📝 DEBUG: Found {len(orders)} orders matching query (needed {quantity_to_process})")
+        st.write(f"📝 DEBUG: Found {len(orders)} orders matching query (needed {quantity_to_process})")
 
         # CRITICAL VALIDATION
         if len(orders) < quantity_to_process:
+            print(f"⚠️ DEBUG: Insufficient orders. Found {len(orders)}, needed {quantity_to_process}")
+            st.warning(f"⚠️ Only {len(orders)} orders available instead of {quantity_to_process}")
             # update dataframe in session state to reflect current DB state
             st.session_state.orders_df = get_orders_from_db()
             return -1, []
@@ -450,7 +463,7 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
         processed_ids = []
 
         # STEP 2 — UPDATE ORDER-BY-ORDER inside the same transaction
-        for order in orders:
+        for idx, order in enumerate(orders):
             ref = order.reference
             update_fields = {
                 "status": new_status,
@@ -463,27 +476,40 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
                 else:
                     update_fields[f"{new_status}_by"] = user
 
+            print(f"📝 DEBUG: Updating order {order.id} with fields: {update_fields}")
             transaction.update(ref, update_fields)
-            st.success(f"Order {order.id} updated to {new_status}.")
+            st.success(f"✅ Order {order.id} updated to {new_status}.")
+            print(f"✅ Order {order.id} marked for update to {new_status}")
             processed_ids.append(order.id)
 
+        print(f"📝 DEBUG: Transaction complete. Processed {len(processed_ids)} orders: {processed_ids}")
+        st.write(f"📝 DEBUG: Transaction complete. Processed {len(processed_ids)} orders")
         return len(processed_ids), processed_ids
 
     # RUN the transactional function
     try:
+        print(f"🚀 DEBUG: Executing transaction...")
         processed_qty, processed_ids = process(transaction)
+        print(f"✅ DEBUG: Transaction executed successfully. processed_qty={processed_qty}")
+        st.success(f"✅ Transaction complete: {processed_qty} orders updated")
     except Exception as ex:
+        print(f"❌ DEBUG: Transaction failed with error: {str(ex)}")
+        st.error(f"❌ Transaction error: {str(ex)}")
         raise
 
     # STEP 3 — update Streamlit session cache (optional)
-    if "orders_df" in st.session_state:
+    if "orders_df" in st.session_state and processed_ids:
+        print(f"📝 DEBUG: Updating session state for orders: {processed_ids}")
         df = st.session_state.orders_df
         mask = df["order_id"].isin(processed_ids)
         df.loc[mask, "status"] = new_status
         if user:
             df.loc[mask, f"{new_status}_by"] = user
         st.session_state.orders_df = df
+        print(f"✅ DEBUG: Session state updated")
+        st.write(f"✅ DEBUG: Session state updated for {mask.sum()} rows")
 
+    print(f"🎯 DEBUG: Final result - processed_qty={processed_qty}, processed_ids={processed_ids}")
     return processed_qty, processed_ids
 
 def calculate_order_counts():
