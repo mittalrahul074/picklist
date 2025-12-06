@@ -18,7 +18,6 @@ def get_db_connection():
         print("Firebase secrets found")
         
         firebase_credentials = dict(st.secrets["firebase"])  # Convert secrets to dict
-        print(f"Firebase credentials keys: {list(firebase_credentials.keys())}")
 
         # Initialize Firebase if not already initialized
         if not firebase_admin._apps:
@@ -114,8 +113,6 @@ def get_pass(username):
         return None
 
 def get_party(username):
-    print(f"Fetching party for user: {username}")
-    # st.write(f"🔍 DEBUG: Fetching party for user: {username}")
     
     db = get_db_connection()
     if db is None:
@@ -124,10 +121,7 @@ def get_party(username):
         # st.error(error_msg)
         return "Both"  # Default fallback
         
-    try:
-        print(f"Querying Firestore for user party: {username}")
-        # st.write(f"🔍 DEBUG: Querying Firestore for user party: {username}")
-        
+    try:        
         user_ref = db.collection("users").document(username)
         user_doc = user_ref.get()
         
@@ -162,8 +156,6 @@ def get_party(username):
             # st.warning(f"Unknown party value {party_value} for user {username}, defaulting to 'Both'")
             result = "Both"
             
-        print(f"✅ Party result for {username}: {result}")
-        # st.write(f"✅ DEBUG: Party result for {username}: {result}")
         return result
         
     except Exception as e:
@@ -173,8 +165,6 @@ def get_party(username):
         return "Both"  # Default fallback
 
 def get_user_type(username):
-    print(f"Fetching user type for user: {username}")
-    # st.write(f"🔍 DEBUG: Fetching party for user: {username}")
     
     db = get_db_connection()
     if db is None:
@@ -185,7 +175,6 @@ def get_user_type(username):
         
     try:
         print(f"Querying Firestore for user type: {username}")
-        # st.write(f"🔍 DEBUG: Querying Firestore for user party: {username}")
         
         user_ref = db.collection("users").document(username)
         user_doc = user_ref.get()
