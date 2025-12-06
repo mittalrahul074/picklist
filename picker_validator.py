@@ -41,6 +41,7 @@ def pick_sku(page_info):
 
     print(f"DEBUG: pick_sku called for SKU={sku}, quantity={total_quantity}")
     st.success(f"DEBUG: pick_sku called for SKU={sku}, quantity={total_quantity}")
+    time.sleep(0.5)  # UX delay
 
     processed_quantity, processed_order_ids = update_orders_for_sku(
         sku, 
@@ -51,6 +52,7 @@ def pick_sku(page_info):
     
     print(f"DEBUG: First update returned processed_quantity={processed_quantity}")
     st.success(f"DEBUG: First update returned processed_quantity={processed_quantity}")
+    time.sleep(0.5)  # UX delay
     
     if st.session_state.get("user_type") == 3:
         print(f"DEBUG: user_type is 3, performing secondary validation")
@@ -64,6 +66,7 @@ def pick_sku(page_info):
         )
         print(f"DEBUG: Secondary update returned processed_quantity2={processed_quantity2}")
         st.success(f"DEBUG: Secondary update returned processed_quantity2={processed_quantity2}")
+        time.sleep(0.5)  # UX delay
 
     if processed_quantity == -1:
         print(f"DEBUG: ERROR - Not enough quantity for SKU={sku}")
@@ -72,11 +75,13 @@ def pick_sku(page_info):
             f"Someone already validated/picked these orders.",
             icon="⚠️"
         )
+        time.sleep(0.5)  # UX delay
         return
     
     if processed_quantity > 0:
         print(f"DEBUG: SUCCESS - {page_info['new_status']} {processed_quantity} units of {sku}")
         st.success(f"{page_info['new_status']} {processed_quantity} units of {sku}!")
+        time.sleep(0.5)  # UX delay
     
     time.sleep(0.5)  # UX delay
     # next_sku()  # Move to next SKU
