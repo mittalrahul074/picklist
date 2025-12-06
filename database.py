@@ -280,30 +280,47 @@ def get_orders_from_db(status=None):
     """
 
     db = get_db_connection()
+    if db is None:
+        error_msg = "❌ Database connection failed in get_orders_from_db"
+        print(error_msg)
+        st.warning(error_msg)
+        return pd.DataFrame()
+    
     orders_ref = db.collection("orders")
-
     seven_days_ago = datetime.utcnow() - timedelta(days=7)
 
-    query = orders_ref.where("created_at", ">=", seven_days_ago)
+    try:
+        print(f"🔍 DEBUG: Querying orders from last 7 days (since {seven_days_ago})")
+        st.write(f"🔍 DEBUG: Querying orders from last 7 days (since {seven_days_ago})")
+        
+        query = orders_ref.where("created_at", ">=", seven_days_ago)
 
-    # Apply status filter if provided
-    if status:
-        query = orders_ref.where("status", "==", status)
+        # Apply status filter if provided
+        if status:
+            print(f"🔍 DEBUG: Applying status filter: {status}")
+            st.write(f"🔍 DEBUG: Applying status filter: {status}")
+            query = query.where("status", "==", status)
 
-    orders = orders_ref.stream()
-    order_list = []
+        orders = list(query.stream())
+        print(f"✅ DEBUG: Found {len(orders)} orders from Firestore")
+        st.write(f"✅ DEBUG: Found {len(orders)} orders from Firestore")
+        
+        order_list = [
+            {**order.to_dict(), "order_id": order.id}
+            for order in orders
+        ]
 
-    order_list = [
-        {**order.to_dict(), "order_id": order.id}  # Merge Firestore data with ID
-        for order in orders
-    ]
+        df = pd.DataFrame(order_list) if order_list else pd.DataFrame()
+        print(f"✅ DEBUG: Created DataFrame with {len(df)} rows and columns: {list(df.columns) if not df.empty else []}")
+        st.write(f"✅ DEBUG: Created DataFrame with {len(df)} rows")
 
-    df = pd.DataFrame(order_list) if order_list else pd.DataFrame()
-
-    # if "dispatch_date" in df.columns:
-    #     df["dispatch_date"] = pd.to_datetime(df["dispatch_date"], format="%d-%m-%Y", dayfirst=True, errors="coerce")
-
-    return df
+        return df
+        
+    except Exception as e:
+        error_msg = f"❌ Error fetching orders from database: {e}"
+        print(error_msg)
+        st.warning(error_msg)
+        return pd.DataFrame()
 
 def update_status(order_id,status, platform):
     db = get_db_connection()
@@ -446,6 +463,7 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
             print(f"⚠️ DEBUG: Insufficient orders. Found {len(orders)}, needed {quantity_to_process}")
             st.warning(f"⚠️ Only {len(orders)} orders available instead of {quantity_to_process}")
             # update dataframe in session state to reflect current DB state
+            st.warning("Updating local order cache to reflect current database state.")
             st.session_state.orders_df = get_orders_from_db()
             return -1, []
 
