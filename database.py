@@ -359,18 +359,16 @@ def get_orders_grouped_by_sku(orders_df, status=None):
 
         # print("After conversion, dispatch_date sample:\n", orders_df[['dispatch_date']].head())
 
-        before_drop = len(orders_df)
-        orders_df = orders_df.dropna(subset=['dispatch_date'])
-        after_drop = len(orders_df)
-        # print(f"Dropped {before_drop - after_drop} rows with NaT dispatch_date.")
-
         # Filter by status if provided
         if status:
             orders_df = orders_df[orders_df["status"] == status]
-
+            
         if orders_df.empty:
             print("⚠️ Warning: No matching records after status filter.")
             return pd.DataFrame()
+        # Remove rows with invalid dispatch_date
+        orders_df = orders_df.dropna(subset=['dispatch_date'])
+
 
         def get_dispatch_breakdown(sub_df):
             grouped = sub_df.groupby("dispatch_date")["quantity"].sum().reset_index()
@@ -470,6 +468,8 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
             # update dataframe in session state to reflect current DB state
             st.warning("Updating local order cache to reflect current database state.")
             st.session_state.orders_df = get_orders_from_db()
+            # remove cached_orders
+            
             return -1, []
 
         processed_ids = []
