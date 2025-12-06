@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
+import time
 
 def get_db_connection():
     print("Connecting to Firestore database...")
@@ -278,7 +279,7 @@ def get_orders_from_db(status=None):
     Returns:
         DataFrame containing the orders
     """
-
+    
     db = get_db_connection()
     if db is None:
         error_msg = "❌ Database connection failed in get_orders_from_db"
@@ -292,6 +293,7 @@ def get_orders_from_db(status=None):
     try:
         print(f"🔍 DEBUG: Querying orders from last 7 days (since {seven_days_ago})")
         st.write(f"🔍 DEBUG: Querying orders from last 7 days (since {seven_days_ago})")
+        time.sleep(0.5)  # slight delay for UX
         
         query = orders_ref.where("created_at", ">=", seven_days_ago)
 
@@ -300,10 +302,12 @@ def get_orders_from_db(status=None):
             print(f"🔍 DEBUG: Applying status filter: {status}")
             st.write(f"🔍 DEBUG: Applying status filter: {status}")
             query = query.where("status", "==", status)
+            time.sleep(0.5)  # slight delay for UX
 
         orders = list(query.stream())
         print(f"✅ DEBUG: Found {len(orders)} orders from Firestore")
         st.write(f"✅ DEBUG: Found {len(orders)} orders from Firestore")
+        time.sleep(0.5)  # slight delay for UX
         
         order_list = [
             {**order.to_dict(), "order_id": order.id}
@@ -313,6 +317,7 @@ def get_orders_from_db(status=None):
         df = pd.DataFrame(order_list) if order_list else pd.DataFrame()
         print(f"✅ DEBUG: Created DataFrame with {len(df)} rows and columns: {list(df.columns) if not df.empty else []}")
         st.write(f"✅ DEBUG: Created DataFrame with {len(df)} rows")
+        time.sleep(0.5)  # slight delay for UX
 
         return df
         
