@@ -132,7 +132,6 @@ def render_picker_validator_panel(which_page):
     # Display SKU card
     with st.expander("📷 View Product Image"):
         img_url = get_product_image_url(sku)  # or database.get_product_image_url(sku)
-        print("Product Image URL:", img_url)
         if img_url:
             st.image(img_url, use_column_width=True)
         else:
