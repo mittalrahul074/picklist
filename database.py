@@ -464,6 +464,7 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
                     update_fields[f"{new_status}_by"] = user
 
             transaction.update(ref, update_fields)
+            st.success(f"Order {order.id} updated to {new_status}.")
             processed_ids.append(order.id)
 
         return len(processed_ids), processed_ids

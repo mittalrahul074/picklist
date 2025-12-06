@@ -155,12 +155,14 @@ def render_picker_validator_panel(which_page):
     )
 
     if st.button(f"{page_info['to_do']} Adjusted Quantity", use_container_width=True):
+        st.success(f"Processing {pick_quantity} units of {sku} for {page_info['to_do']}.")
         processed_quantity, processed_order_ids = update_orders_for_sku(
             sku, 
             pick_quantity, 
             page_info['new_status'],
             st.session_state.user_role
         )
+        st.success(f"Processed {processed_quantity} units of {sku} for {page_info['to_do']}.")
 
         if processed_quantity == -1:
             st.toast(
