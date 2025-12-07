@@ -269,20 +269,10 @@ def add_orders_to_db(orders_df, platform):
 
 
 def get_orders_from_db(status=None):
-    """
-    Get orders from the database
-    
-    Args:
-        db_path: Path to the database
-        status: Optional filter for order status
-    
-    Returns:
-        DataFrame containing the orders
-    """
     
     db = get_db_connection()
     if db is None:
-        error_msg = "❌ Database connection failed in get_orders_from_db"
+        error_msg =     "❌ Database connection failed in get_orders_from_db"
         print(error_msg)
         st.warning(error_msg)
         return pd.DataFrame()
@@ -291,22 +281,19 @@ def get_orders_from_db(status=None):
     seven_days_ago = datetime.utcnow() - timedelta(days=7)
 
     try:
-        print(f"🔍 DEBUG: Querying orders from last 7 days (since {seven_days_ago})")
-        st.write(f"🔍 DEBUG: Querying orders from last 7 days (since {seven_days_ago})")
+        # print(f"🔍 DEBUG: Querying orders from last 7 days (since {seven_days_ago})")
         time.sleep(0.5)  # slight delay for UX
         
         query = orders_ref.where("created_at", ">=", seven_days_ago)
 
         # Apply status filter if provided
         if status:
-            print(f"🔍 DEBUG: Applying status filter: {status}")
-            st.write(f"🔍 DEBUG: Applying status filter: {status}")
+            # print(f"🔍 DEBUG: Applying status filter: {status}")
             query = query.where("status", "==", status)
             time.sleep(0.5)  # slight delay for UX
 
         orders = list(query.stream())
-        print(f"✅ DEBUG: Found {len(orders)} orders from Firestore")
-        st.write(f"✅ DEBUG: Found {len(orders)} orders from Firestore")
+        # print(f"✅ DEBUG: Found {len(orders)} orders from Firestore")
         time.sleep(0.5)  # slight delay for UX
         
         order_list = [
@@ -315,8 +302,7 @@ def get_orders_from_db(status=None):
         ]
 
         df = pd.DataFrame(order_list) if order_list else pd.DataFrame()
-        print(f"✅ DEBUG: Created DataFrame with {len(df)} rows and columns: {list(df.columns) if not df.empty else []}")
-        st.write(f"✅ DEBUG: Created DataFrame with {len(df)} rows")
+        # print(f"✅ DEBUG: Created DataFrame with {len(df)} rows and columns: {list(df.columns) if not df.empty else []}")
         time.sleep(0.5)  # slight delay for UX
 
         return df
