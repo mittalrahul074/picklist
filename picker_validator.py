@@ -39,8 +39,8 @@ def pick_sku(page_info):
     sku = current_sku_group['sku']
     total_quantity = current_sku_group['total_quantity']
 
-    print(f"DEBUG: pick_sku called for SKU={sku}, quantity={total_quantity}")
-    st.success(f"DEBUG: pick_sku called for SKU={sku}, quantity={total_quantity}")
+    # print(f"DEBUG: pick_sku called for SKU={sku}, quantity={total_quantity}")
+    # st.success(f"DEBUG: pick_sku called for SKU={sku}, quantity={total_quantity}")
     time.sleep(0.5)  # UX delay
 
     processed_quantity, processed_order_ids = update_orders_for_sku(
@@ -50,13 +50,13 @@ def pick_sku(page_info):
         st.session_state.user_role
     )
     
-    print(f"DEBUG: First update returned processed_quantity={processed_quantity}")
-    st.success(f"DEBUG: First update returned processed_quantity={processed_quantity}")
+    # print(f"DEBUG: First update returned processed_quantity={processed_quantity}")
+    # st.success(f"DEBUG: First update returned processed_quantity={processed_quantity}")
     time.sleep(0.5)  # UX delay
     
     if st.session_state.get("user_type") == 3:
-        print(f"DEBUG: user_type is 3, performing secondary validation")
-        st.success(f"DEBUG: user_type is 3, performing secondary validation")
+        # print(f"DEBUG: user_type is 3, performing secondary validation")
+        # st.success(f"DEBUG: user_type is 3, performing secondary validation")
         # perform validation on the same picked orders
         processed_quantity2, processed_order_ids = update_orders_for_sku(
             sku, 
@@ -64,12 +64,12 @@ def pick_sku(page_info):
             "validated",
             st.session_state.user_role
         )
-        print(f"DEBUG: Secondary update returned processed_quantity2={processed_quantity2}")
-        st.success(f"DEBUG: Secondary update returned processed_quantity2={processed_quantity2}")
+        # print(f"DEBUG: Secondary update returned processed_quantity2={processed_quantity2}")
+        # st.success(f"DEBUG: Secondary update returned processed_quantity2={processed_quantity2}")
         time.sleep(0.5)  # UX delay
 
     if processed_quantity == -1:
-        print(f"DEBUG: ERROR - Not enough quantity for SKU={sku}")
+        # print(f"DEBUG: ERROR - Not enough quantity for SKU={sku}")
         st.toast(
             f"❌ Not enough quantity left for SKU={sku}. "
             f"Someone already validated/picked these orders.",
@@ -79,7 +79,7 @@ def pick_sku(page_info):
         return
     
     if processed_quantity > 0:
-        print(f"DEBUG: SUCCESS - {page_info['new_status']} {processed_quantity} units of {sku}")
+        # print(f"DEBUG: SUCCESS - {page_info['new_status']} {processed_quantity} units of {sku}")
         st.success(f"{page_info['new_status']} {processed_quantity} units of {sku}!")
         time.sleep(0.5)  # UX delay
     
@@ -158,6 +158,8 @@ def render_picker_validator_panel(which_page):
             pick_sku(page_info)
             st.session_state.current_index += 1
             st.rerun()
+
+    st.button("Previous SKU ⬅️", key="previous_sku_button", use_container_width=True, on_click=lambda: st.session_state.update(current_index=max(0, st.session_state.current_index-1)))
 
     # Pick Quantity Adjustment
     st.markdown("---")
