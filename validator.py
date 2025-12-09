@@ -210,12 +210,13 @@ def render_validator_panel():
                     for k in keys_to_clear:
                         if k in st.session_state:
                             del st.session_state[k]
-                    st.rerun()
+                    st.session_state.orders_df = get_orders_from_db()
                 print(f"DEBUG: update_orders_for_sku returned processed_qty={processed_qty} for SKU={sku}, requested_qty={qty}")
                 total_validated += processed_qty
 
         print(f"DEBUG: Total validated computed = {total_validated}")
 
         st.success(f"Validated {total_validated} items successfully!")
+        st.session_state.orders_df = get_orders_from_db()  # Refresh orders
         time.sleep(1)
         st.rerun()
