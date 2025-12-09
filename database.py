@@ -419,6 +419,7 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
         "new" if new_status == "picked" else
         "picked" if new_status == "validated" else
         "picked" if new_status == "cancelled" else
+        "picked" if new_status == "wrong" else
         None
     )
 
