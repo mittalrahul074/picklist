@@ -54,6 +54,22 @@ def render_validator_panel():
     df = st.session_state.orders_df
     party_filter = st.session_state.get("party_filter", "Both")
     df = utils.get_party_filter_df(df, party_filter)
+    df = df[df["status"] == page_info['status']]
+
+    user_list = sorted([u for u in df["picked_by"].dropna().unique()])
+
+    user_list.insert(0, "All")
+    current_filter = st.session_state.get("picked_by_filter", "All")
+
+    picked_by_filter = st.selectbox(
+        "Show SKUs picked by:",
+        options=user_list,
+        index=user_list.index(current_filter) if current_filter in user_list else 0,
+        key="picked_by_filter_select"
+    )
+    if picked_by_filter != "All":
+        df = df[df["picked_by"] == picked_by_filter]
+    
 
     sku_groups = get_orders_grouped_by_sku(
         df,
@@ -172,22 +188,17 @@ def render_validator_panel():
 
     if st.button("Submit Validation", type="primary", use_container_width=True):
         total_validated = 0
-        print("DEBUG: Submit Validation clicked")
-        st.write("DEBUG: Starting validation...")
 
         for idx, row in sku_groups.iterrows():
             sku = row["sku"]
             dispatch_list = row["dispatch_breakdown"]
-            print(f"DEBUG: Processing SKU={sku}, row_index={idx}, dispatch_list_type={type(dispatch_list)}")
 
             if isinstance(dispatch_list, str):
                 dispatch_list = json.loads(dispatch_list)
-                print(f"DEBUG: Parsed dispatch_list JSON for SKU={sku}: {dispatch_list}")
 
             for d_idx, dispatch in enumerate(dispatch_list):
                 key = f"{sku}_{d_idx}"
                 qty = st.session_state.validation_inputs.get(key, 0)
-                print(f"DEBUG: SKU={sku} d_idx={d_idx} key={key} qty_input={qty}")
 
                 if qty <= 0:
                     print(f"DEBUG: Skipping SKU={sku} d_idx={d_idx} because qty={qty}")
@@ -211,10 +222,9 @@ def render_validator_panel():
                         if k in st.session_state:
                             del st.session_state[k]
                     st.session_state.orders_df = get_orders_from_db()
-                print(f"DEBUG: update_orders_for_sku returned processed_qty={processed_qty} for SKU={sku}, requested_qty={qty}")
+                # print(f"DEBUG: update_orders_for_sku returned processed_qty={processed_qty} for SKU={sku}, requested_qty={qty}")
                 total_validated += processed_qty
 
-        print(f"DEBUG: Total validated computed = {total_validated}")
 
         st.success(f"Validated {total_validated} items successfully!")
         st.session_state.orders_df = get_orders_from_db()  # Refresh orders
