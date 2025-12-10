@@ -150,10 +150,10 @@ def render_picker_validator_panel(which_page):
 
     # Buttons
     col1, col2 = st.columns(2)
-    with col1:
+    with col2:
         st.button(f"⬅️ {page_info['left']}", key=page_info['key_left'], use_container_width=True, on_click=next_sku)
 
-    with col2:
+    with col1:
         if st.button(f"{page_info['right']} ➡️", key=page_info['key_right'], use_container_width=True):
             pick_sku(page_info)
             st.session_state.current_index += 1
