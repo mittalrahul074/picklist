@@ -86,11 +86,11 @@ def pick_sku(page_info):
     time.sleep(0.5)  # UX delay
     # next_sku()  # Move to next SKU
 
-@st.cache_data(ttl=30)
+# @st.cache_data(ttl=30)
 def cached_orders():
     return get_orders_from_db()
 
-@st.cache_data
+# @st.cache_data
 def cached_group_orders(df, status):
     return get_orders_grouped_by_sku(df, status)
 
