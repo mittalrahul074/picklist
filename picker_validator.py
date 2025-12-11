@@ -86,11 +86,11 @@ def pick_sku(page_info):
     time.sleep(0.5)  # UX delay
     # next_sku()  # Move to next SKU
 
-@st.cache_data(ttl=30)
+# @st.cache_data(ttl=30)
 def cached_orders():
     return get_orders_from_db()
 
-@st.cache_data
+# @st.cache_data
 def cached_group_orders(df, status):
     return get_orders_grouped_by_sku(df, status)
 
@@ -150,10 +150,10 @@ def render_picker_validator_panel(which_page):
 
     # Buttons
     col1, col2 = st.columns(2)
-    with col1:
+    with col2:
         st.button(f"⬅️ {page_info['left']}", key=page_info['key_left'], use_container_width=True, on_click=next_sku)
 
-    with col2:
+    with col1:
         if st.button(f"{page_info['right']} ➡️", key=page_info['key_right'], use_container_width=True):
             pick_sku(page_info)
             st.session_state.current_index += 1
