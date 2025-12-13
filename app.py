@@ -201,10 +201,9 @@ with st.sidebar:
             st.session_state.page = "picker"
             st.rerun()
 
-        if st.session_state.user_type != 1:  # Not a picker-only user 
-            if st.button("Validate Orders"):
-                st.session_state.page = "validator"
-                st.rerun()
+        if st.button("Validate Orders"):
+            st.session_state.page = "validator"
+            st.rerun()
 
         if st.session_state.user_role == "admin":
             if st.button("Delete"):
