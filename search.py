@@ -9,6 +9,7 @@ def render_search_panel():
     db = database.get_db_connection()
     orders_ref = db.collection("orders")
     users_ref = db.collection("users")
+    product_ref = db.collection("products")
     st.subheader("Search Criteria")
 
     # ---------- LOAD USERS ONCE ----------
@@ -16,12 +17,17 @@ def render_search_panel():
     user_list = sorted([doc.id for doc in user_docs])
     user_list.insert(0, "Any")
 
+    #product list
+    product_docs = product_ref.stream()
+    product_list = sorted([doc.id for doc in product_docs])
+    product_list.insert(0, "Any")
+
     # ---------- UI INPUTS ----------
     col1, col2 = st.columns(2)
 
     with col1:
         order_id_input = st.text_input("Order ID (exact match)")
-        sku_input = st.text_input("SKU")
+        sku_input = st.selectbox("Product SKU", options=product_list)
 
     with col2:
         status_input = st.selectbox(
@@ -49,7 +55,7 @@ def render_search_panel():
         # CASE 2: Build Firestore query
         query = orders_ref
 
-        if sku_input:
+        if sku_input != "Any":
             query = query.where("sku", "==", sku_input)
 
         if status_input != "Any":
