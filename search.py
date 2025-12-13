@@ -55,6 +55,11 @@ def render_search_panel():
         # CASE 2: Build Firestore query
         query = orders_ref
 
+        #dont allow search without sku or ordrer id
+        if sku_input == "Any" and not order_id_input:
+            st.warning("❌ Please provide at least a Product SKU or Order ID to search")
+            return
+
         if sku_input != "Any":
             query = query.where("sku", "==", sku_input)
 
