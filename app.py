@@ -12,6 +12,7 @@ from validator import render_validator_panel
 from dashboard import render_dashboard
 from firestore_delete_app import render_delete_panel
 from database import init_database, get_party, get_user_type
+from search import render_search_panel
 
 # -------------------------------------------------------------------
 # CONFIG
@@ -205,6 +206,10 @@ with st.sidebar:
             st.session_state.page = "validator"
             st.rerun()
 
+        if st.button("Search Orders"):
+            st.session_state.page = "search"
+            st.rerun()
+
         if st.session_state.user_role == "admin":
             if st.button("Delete"):
                 st.session_state.page = "delete"
@@ -228,5 +233,7 @@ else:
         render_picker_validator_panel("picker")
     elif st.session_state.page == "validator":
         render_picker_validator_panel("validator")
+    elif st.session_state.page == "search":
+        render_search_panel()
     elif st.session_state.page == "delete":
         render_delete_panel()
