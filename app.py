@@ -212,7 +212,7 @@ with st.sidebar:
             st.rerun()
 
         # upload return scan file for user type greater than 1
-        if st.session_state.user_type == 2 or st.session_state.user_type ==3 or st.session_state.user_type ==4:
+        if st.session_state.user_type == 2 or st.session_state.user_type ==3 or st.session_state.user_type ==4  or st.session_state.user_type ==5:
             if st.button("Upload Return Scan"):
                 st.session_state.page = "return_scan"
                 st.rerun()
