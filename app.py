@@ -13,6 +13,7 @@ from dashboard import render_dashboard
 from firestore_delete_app import render_delete_panel
 from database import init_database, get_party, get_user_type
 from search import render_search_panel
+from return_scan import render_return_scan_panel
 
 # -------------------------------------------------------------------
 # CONFIG
@@ -206,9 +207,15 @@ with st.sidebar:
             st.session_state.page = "validator"
             st.rerun()
 
-        if st.button("Search Orders"):
+        if st.button(f"Search Orders"):
             st.session_state.page = "search"
             st.rerun()
+
+        # upload return scan file for user type greater than 1
+        if st.session_state.user_type == 2 or st.session_state.user_type ==3 or st.session_state.user_type ==4:
+            if st.button("Upload Return Scan"):
+                st.session_state.page = "return_scan"
+                st.rerun()
 
         if st.session_state.user_role == "admin":
             if st.button("Delete"):
@@ -235,5 +242,7 @@ else:
         render_picker_validator_panel("validator")
     elif st.session_state.page == "search":
         render_search_panel()
+    elif st.session_state.page == "return_scan":
+        render_return_scan_panel()
     elif st.session_state.page == "delete":
         render_delete_panel()

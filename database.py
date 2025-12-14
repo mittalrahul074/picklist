@@ -325,6 +325,19 @@ def update_status(order_id,status, platform):
     else:
         print(f"⚠️ Order {order_id} not found in Firestore.")
 
+def enter_return_data(order_id, return_date, user,awb,sku):
+    db = get_db_connection()
+    #insert into returns collection document with order_id as document id
+    returns_ref = db.collection("returns").document(awb)
+    returns_ref.set({
+        "order_id":order_id,
+        "sku": sku,
+        "return_date": return_date,
+        "processed_by": user,
+        "created_at": firestore.SERVER_TIMESTAMP,
+        "updated_at": firestore.SERVER_TIMESTAMP
+    })
+
 def get_orders_grouped_by_sku(orders_df, status=None):
     """
     Groups orders by SKU and dispatch date, ensuring earliest dispatch orders come first.
