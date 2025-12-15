@@ -18,8 +18,14 @@ def render_search_panel():
     user_list.insert(0, "Any")
 
     #product list
-    product_docs = product_ref.stream()
-    product_list = sorted([doc.id for doc in product_docs])
+    product_list = set()
+
+    for doc in product_ref.stream():
+        sku = doc.to_dict().get("sku")
+        if sku:
+            product_list.add(sku)
+
+    product_list = sorted(product_list)
     product_list.insert(0, "Any")
 
     # ---------- UI INPUTS ----------
