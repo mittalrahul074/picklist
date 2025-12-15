@@ -21,7 +21,7 @@ def render_search_panel():
     product_list = set()
 
     for doc in product_ref.stream():
-        sku = doc.to_dict().get("sku")
+        sku = doc.to_dict().get("sku").upper()
         if sku:
             product_list.add(sku)
 

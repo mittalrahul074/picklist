@@ -429,6 +429,7 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
 
     # Determine old status → what we are converting *from*
     old_status = (
+        "picked" if new_status =="new" else
         "new" if new_status == "picked" else
         "picked" if new_status == "validated" else
         "picked" if new_status == "cancelled" else
@@ -516,6 +517,13 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
                 "status": new_status,
                 "updated_at": datetime.utcnow()
             }
+            
+            if new_status == "new":
+                update_fields = {
+                    "status": new_status,
+                    "picked_by": "",
+                    "updated_at": datetime.utcnow()
+                }
 
             if user:
                 if new_status == "cancelled":

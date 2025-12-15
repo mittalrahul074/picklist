@@ -11,7 +11,8 @@ def render_admin_panel():
         df = st.session_state.orders_df
         party_filter = st.session_state.get("party_filter", "Both")
         if party_filter == "Kangan":
-            df = df[df["sku"].str.startswith("K")]
+            #allow starting with K or L
+            df = df[df["sku"].str.startswith(("K", "L"))]
         elif party_filter == "RS":
             df = df[df["sku"].str.startswith("R")]
     
