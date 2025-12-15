@@ -103,11 +103,34 @@ def render_validator_panel():
             dispatch_list = json.loads(dispatch_list)
 
         # SKU HEADER WITH CANCEL BUTTON
-        sku_col, btn_col,wng_btn = st.columns([4,2, 2])
+        sku_col, btn_col,wng_btn,rmv_btn = st.columns([2,2,2, 2])
 
         with sku_col:
             st.subheader(f"{sl_no}. SKU: {sku}")
             st.caption(f"Total Quantity: {total_qty}")
+
+        with rmv_btn:
+            rvm_unique_key = f"remove_{sku}_{sl_no}"
+            if st.button("🗑️ Remove", key=rvm_unique_key):
+                # Remove all picked orders for this SKU
+                cancel_qty, order_ids = update_orders_for_sku(
+                    sku,
+                    total_qty,  # large number = remove all picked units
+                    "new",
+                    st.session_state.user_role
+                )
+
+                if cancel_qty > 0:
+                    st.toast(f"🗑️ Removed {cancel_qty} units for {sku}.", icon="⚠️")
+                else:
+                    st.toast(f"No picked orders left to remove for {sku}.", icon="⚠️")
+
+                # Clear cached orders
+                if "orders_df" in st.session_state:
+                    del st.session_state["orders_df"]
+
+                time.sleep(0.5)
+                st.rerun()
 
         if st.session_state.user_type != 1:  # Not a picker-only user 
 
