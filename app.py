@@ -14,7 +14,8 @@ from firestore_delete_app import render_delete_panel
 from database import init_database, get_party, get_user_type
 from search import render_search_panel
 from return_scan import render_return_scan_panel
-
+from accept_returns import render_accept_returns_panel
+from database import get_orders_from_db, get_orders_grouped_by_sku
 # -------------------------------------------------------------------
 # CONFIG
 # -------------------------------------------------------------------
@@ -217,6 +218,10 @@ with st.sidebar:
                 st.session_state.page = "return_scan"
                 st.rerun()
 
+            if st.button("Accept Returns"):
+                st.session_state.page = "accept_returns"
+                st.rerun()
+
         if st.session_state.user_role == "admin":
             if st.button("Delete"):
                 st.session_state.page = "delete"
@@ -244,5 +249,7 @@ else:
         render_search_panel()
     elif st.session_state.page == "return_scan":
         render_return_scan_panel()
+    elif st.session_state.page == "accept_returns":
+        render_accept_returns_panel()
     elif st.session_state.page == "delete":
         render_delete_panel()
