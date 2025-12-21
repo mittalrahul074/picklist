@@ -21,7 +21,7 @@ def render_search_panel():
     product_list = set()
 
     for doc in product_ref.stream():
-        sku = doc.to_dict().get("sku").upper()
+        sku = doc.to_dict().get("sku")
         if sku:
             product_list.add(sku)
 
@@ -67,15 +67,15 @@ def render_search_panel():
             return
 
         if sku_input != "Any":
-            query = query.where("sku", "==", sku_input)
+            query = query.where("sku", "==", sku_input.upper())
 
         if status_input != "Any":
             query = query.where("status", "==", status_input)
 
-        if picked_by_input:
+        if picked_by_input != "Any":
             query = query.where("picked_by", "==", picked_by_input)
 
-        if validated_by_input:
+        if validated_by_input != "Any":
             query = query.where("validated_by", "==", validated_by_input)
 
         # ---------- EXECUTE QUERY ----------

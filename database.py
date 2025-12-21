@@ -239,7 +239,7 @@ def add_orders_to_db(orders_df, platform):
 
             # Add order to batch
             batch.set(doc_ref, {
-                "sku": row["sku"],
+                "sku": row["sku"].upper(),
                 "quantity": row["quantity"],
                 "status": "new",  # Default status
                 "picked_by": "",
