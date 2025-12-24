@@ -239,7 +239,7 @@ def add_orders_to_db(orders_df, platform):
 
             # Add order to batch
             batch.set(doc_ref, {
-                "sku": row["sku"],
+                "sku": row["sku"].upper(),
                 "quantity": row["quantity"],
                 "status": "new",  # Default status
                 "picked_by": "",
@@ -303,6 +303,47 @@ def get_orders_from_db(status=None):
 
         df = pd.DataFrame(order_list) if order_list else pd.DataFrame()
         # print(f"✅ DEBUG: Created DataFrame with {len(df)} rows and columns: {list(df.columns) if not df.empty else []}")
+        time.sleep(0.5)  # slight delay for UX
+
+        return df
+        
+    except Exception as e:
+        error_msg = f"❌ Error fetching orders from database: {e}"
+        print(error_msg)
+        st.warning(error_msg)
+        return pd.DataFrame()
+
+def get_returns_from_db(status=None):
+    
+    db = get_db_connection()
+    if db is None:
+        error_msg =     "❌ Database connection failed in get_returns_from_db"
+        print(error_msg)
+        st.warning(error_msg)
+        return pd.DataFrame()
+    
+    returns_ref = db.collection("returns")
+
+    try:
+        time.sleep(0.1)  # slight delay for UX
+        query = returns_ref
+        # Apply status filter if provided
+        if status:
+            # print(f"🔍 DEBUG: Applying status filter: {status}")
+            query = query.where("status", "==", status)
+            time.sleep(0.5)  # slight delay for UX
+
+        rtrns = list(query.stream())
+        print(f"✅ DEBUG: Found {len(rtrns)} returns from Firestore")
+        time.sleep(0.1)  # slight delay for UX
+
+        return_list = [
+            {**rtrn.to_dict(), "return_id": rtrn.id}
+            for rtrn in rtrns
+        ]
+
+        df = pd.DataFrame(return_list) if return_list else pd.DataFrame()
+        print(f"✅ DEBUG: Created DataFrame with {len(df)} rows and columns: {list(df.columns) if not df.empty else []}")
         time.sleep(0.5)  # slight delay for UX
 
         return df
@@ -394,6 +435,34 @@ def get_orders_grouped_by_sku(orders_df, status=None):
     except Exception as e:
         print(f"Error in grouping orders: {str(e)}")
         raise
+
+def get_returns_grouped_by_sku(returns_df, status=None):
+    """
+    Groups returns by SKU.
+    Each document = 1 return, so count rows per SKU.
+    """
+
+    if returns_df.empty:
+        return pd.DataFrame(columns=["sku", "total_returns"])
+
+    df = returns_df.copy()
+
+    # Optional status filter
+    if status and "status" in df.columns:
+        df = df[df["status"] == status]
+
+    if df.empty:
+        return pd.DataFrame(columns=["sku", "total_returns"])
+
+    grouped_df = (
+        df.groupby("sku", as_index=False)
+        .agg(
+            total_returns=("sku", "count")
+        )
+        .sort_values("sku")
+    )
+
+    return grouped_df
 
 def get_product_image_url(sku):
     try:
@@ -517,7 +586,7 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
                 "status": new_status,
                 "updated_at": datetime.utcnow()
             }
-            
+
             if new_status == "new":
                 update_fields = {
                     "status": new_status,
