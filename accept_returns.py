@@ -55,7 +55,7 @@ def render_accept_returns_panel():
 
     df = st.session_state.return_df
     df = utils.get_party_filter_df(df, st.session_state.party_filter)
-
+    
     sku_groups = get_returns_grouped_by_sku(df)
 
     if sku_groups.empty:

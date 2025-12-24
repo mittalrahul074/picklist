@@ -366,13 +366,14 @@ def update_status(order_id,status, platform):
     else:
         print(f"⚠️ Order {order_id} not found in Firestore.")
 
-def enter_return_data(order_id, return_date, user,awb,sku):
+def enter_return_data(order_id, return_date, user,awb,sku,status):
     db = get_db_connection()
     #insert into returns collection document with order_id as document id
     returns_ref = db.collection("returns").document(awb)
     returns_ref.set({
         "order_id":order_id,
         "sku": sku,
+        "status": status,
         "return_date": return_date,
         "processed_by": user,
         "created_at": firestore.SERVER_TIMESTAMP,
@@ -634,6 +635,160 @@ def update_orders_for_sku(sku, quantity_to_process, new_status, user=None):
 
     print(f"🎯 DEBUG: Final result - processed_qty={processed_qty}, processed_ids={processed_ids}")
     return processed_qty, processed_ids
+
+def accept_returns_by_sku(sku, quantity_to_process, new_status, user=None):
+    """
+    Safe race-condition-free update for a specific SKU + dispatch_date.
+    Uses Firestore transaction to prevent multiple users from corrupting data.
+    """
+
+    db = get_db_connection()
+    if db is None:
+        print("❌ DEBUG: Database connection failed")
+        # st.error("❌ Database connection failed")
+        return 0, []
+
+    transaction = db.transaction()
+
+    # Determine old status → what we are converting *from*
+    old_status = (
+        "picked" if new_status =="new" else
+        "new" if new_status == "picked" else
+        "picked" if new_status == "validated" else
+        "picked" if new_status == "cancelled" else
+        "picked" if new_status == "wrong" else
+        None
+    )
+
+    print(f"🔍 DEBUG: old_status={old_status}, new_status={new_status}, sku={sku}, quantity={quantity_to_process}, user={user}")
+    # st.write(f"🔍 DEBUG: old_status={old_status}, new_status={new_status}, sku={sku}")
+
+    if old_status is None:
+        print("❌ DEBUG: old_status is None - invalid transition")
+        # st.error("❌ Invalid status transition")
+        return 0, []
+
+    @firestore.transactional
+    def process(transaction):
+        print(f"📝 DEBUG: Starting transaction for sku={sku}, old_status={old_status}")
+        
+        # STEP 1 — READ orders safely inside transaction
+        high_query = (
+            db.collection("orders")
+            .where("sku", "==", sku)
+            .where("status", "==", old_status)
+            .where("quantity", ">", 1)
+            .order_by("created_at")
+        )
+
+        low_query = (
+            db.collection("orders")
+            .where("sku", "==", sku)
+            .where("status", "==", old_status)
+            .where("quantity", "==", 1)
+            .order_by("created_at")
+        )
+
+        high_orders = list(transaction.get(high_query))
+        low_orders = list(transaction.get(low_query))
+
+
+        high_total_available = sum(order.to_dict().get("quantity", 0) for order in high_orders)
+        low_total_available = sum(order.to_dict().get("quantity", 0) for order in low_orders)
+        total_available = high_total_available + low_total_available
+        print(f"📝 DEBUG: Total available quantity for SKU={sku} is {total_available}")
+        # st.write(f"📝 DEBUG: Total available quantity for SKU={sku} is {total_available}")
+
+        # CRITICAL VALIDATION
+        if total_available < quantity_to_process:
+            print(f"⚠️ DEBUG: Insufficient orders. Found {total_available}, needed {quantity_to_process}")
+            # st.warning(f"⚠️ Only {total_available} orders available instead of {quantity_to_process}")
+            # st.warning("Updating local order cache to reflect current database state.")
+            st.session_state.orders_df = get_orders_from_db()
+            
+            return -1, []
+
+        processed_ids = []
+        remaining_quantity = quantity_to_process
+        processed_quantity = 0
+        selected = []
+
+        if remaining_quantity > 0:
+            for order in high_orders:
+                qty = order.to_dict().get("quantity", 1)
+                if qty <= remaining_quantity:
+                    selected.append(order)
+                    remaining_quantity -= qty
+
+        if remaining_quantity > 0:
+            for order in low_orders:
+                qty = order.to_dict().get("quantity", 1)
+                if qty <= remaining_quantity:
+                    selected.append(order)
+                    remaining_quantity -= qty
+
+        if remaining_quantity != 0:
+            print(f"❌ DEBUG: Logic error - remaining_quantity should be 0 but is {remaining_quantity}")
+            # st.error(f"❌ Logic error - remaining_quantity should be 0 but is {remaining_quantity}")
+            return -1, []
+        print(f"📝 DEBUG: Selected {len(selected)} orders for processing")
+
+        # STEP 2 — UPDATE ORDER-BY-ORDER inside the same transaction
+        for order in selected:
+            ref = order.reference
+            update_fields = {
+                "status": new_status,
+                "updated_at": datetime.utcnow()
+            }
+
+            if new_status == "new":
+                update_fields = {
+                    "status": new_status,
+                    "picked_by": "",
+                    "updated_at": datetime.utcnow()
+                }
+
+            if user:
+                if new_status == "cancelled":
+                    update_fields["validated_by"] = user
+                else:
+                    update_fields[f"{new_status}_by"] = user
+
+            print(f"📝 DEBUG: Updating order {order.id} with fields: {update_fields}")
+            transaction.update(ref, update_fields)
+            # st.success(f"✅ Order {order.id} updated to {new_status}.")
+            print(f"✅ Order {order.id} marked for update to {new_status}")
+            processed_ids.append(order.id)
+            processed_quantity += order.to_dict().get("quantity", 0)
+        print(f"📝 DEBUG: Transaction processing complete. processed_quantity={processed_quantity}")
+        return processed_quantity, processed_ids
+    
+    # RUN the transactional function
+    try:
+        print(f"🚀 DEBUG: Executing transaction...")
+        processed_qty, processed_ids = process(transaction)
+        print(f"✅ DEBUG: Transaction executed successfully. processed_qty={processed_qty}")
+        # st.success(f"✅ Transaction complete: {processed_qty} orders updated")
+    except Exception as ex:
+        print(f"❌ DEBUG: Transaction failed with error: {str(ex)}")
+        # st.error(f"❌ Transaction error: {str(ex)}")
+        raise
+
+    # STEP 3 — update Streamlit session cache (optional)
+    if "orders_df" in st.session_state and processed_ids:
+        print(f"📝 DEBUG: Updating session state for orders: {processed_ids}")
+        df = st.session_state.orders_df
+        mask = df["order_id"].isin(processed_ids)
+        df.loc[mask, "status"] = new_status
+        if user:
+            df.loc[mask, f"{new_status}_by"] = user
+        st.session_state.orders_df = df
+        print(f"✅ DEBUG: Session state updated")
+        # st.write(f"✅ DEBUG: Session state updated for {mask.sum()} rows")
+
+    print(f"🎯 DEBUG: Final result - processed_qty={processed_qty}, processed_ids={processed_ids}")
+    return processed_qty, processed_ids
+
 
 def calculate_order_counts():
     import utils
