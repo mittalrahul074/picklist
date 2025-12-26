@@ -10,8 +10,10 @@ def next_sku():
         st.session_state.current_index = 0
 
 def get_party_filter_df(df, party_filter):
+    # Filter dataframe based on party_filter
+    # "Both" returns all records kangan (sku starts with K or L) and rs (sku starts with R)
     if party_filter == "Kangan":
-        return df[df["sku"].str.startswith("K")]
+        return df[df["sku"].str.startswith(("K","L"))]
     elif party_filter == "RS":
         return df[df["sku"].str.startswith("R")]
     return df

@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from database import get_returns_grouped_by_sku, update_orders_for_sku, calculate_order_counts,get_returns_from_db
+from database import get_returns_grouped_by_sku, update_orders_for_sku, accept_returns_by_sku,get_returns_from_db
 import time
 import json
 import utils
@@ -55,7 +55,7 @@ def render_accept_returns_panel():
 
     df = st.session_state.return_df
     df = utils.get_party_filter_df(df, st.session_state.party_filter)
-    
+
     sku_groups = get_returns_grouped_by_sku(df)
 
     if sku_groups.empty:
@@ -92,7 +92,7 @@ def render_accept_returns_panel():
             if st.button("✅ Accept", key=f"accept_{sku}", use_container_width=True):
                 processed = accept_returns_by_sku(
                     sku=sku,
-                    quantity=qty,
+                    quantity_to_process=qty,
                     new_status=page_info["new_status"],
                     user=st.session_state.user_role
                 )
