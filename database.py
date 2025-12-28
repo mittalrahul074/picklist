@@ -313,7 +313,7 @@ def get_orders_from_db(status=None):
         st.warning(error_msg)
         return pd.DataFrame()
 
-def get_returns_from_db(status=None):
+def get_returns_from_db(status):
     
     db = get_db_connection()
     if db is None:
@@ -329,7 +329,7 @@ def get_returns_from_db(status=None):
         query = returns_ref
         # Apply status filter if provided
         if status:
-            # print(f"🔍 DEBUG: Applying status filter: {status}")
+            print(f"🔍 DEBUG: Applying status filter: {status}")
             query = query.where("status", "==", status)
             time.sleep(0.5)  # slight delay for UX
 
@@ -370,9 +370,11 @@ def enter_return_data(order_id, return_date, user,awb,sku,status):
     db = get_db_connection()
     #insert into returns collection document with order_id as document id
     returns_ref = db.collection("returns").document(awb)
+    # Normalize SKU to lowercase for consistent querying
+    normalized_sku = str(sku).lower().strip() if sku else ""
     returns_ref.set({
         "order_id":order_id,
-        "sku": sku,
+        "sku": normalized_sku,
         "status": status,
         "return_date": return_date,
         "processed_by": user,
@@ -646,19 +648,31 @@ def accept_returns_by_sku(sku: str, quantity_to_process: int, new_status: str, u
         print(f"❌ Invalid SKU provided: {sku}")
         return 0, []
 
+    print(f"🔍 DEBUG: accept_returns_by_sku called with sku={sku}, quantity_to_process={quantity_to_process}, new_status={new_status}, user={user}")
+
     transaction = db.transaction()
 
     @firestore.transactional
     def process_returns(transaction):
         """Execute transactional update for return records."""
+        print(f"📝 DEBUG: Starting transaction for SKU={sku}")
+        
+        # Use exact SKU as it appears in the database (from grouped data)
+        # Strip whitespace to handle any formatting differences
+        sku_clean = sku.strip()
+        
+        # Try exact match first
         query = (
             db.collection("returns")
-            .where("sku", "==", sku.lower())
+            .where("sku", "==", sku_clean.lower())
             .where("status", "==", "m_return")
             .order_by("created_at")
+            .limit(quantity_to_process)
         )
-
+        print(f"📝 DEBUG: Querying for SKU='{sku_clean}' (exact match)")
         returns = list(transaction.get(query))
+
+        print(f"📝 DEBUG: Found {len(returns)} pending returns for SKU={sku}")
 
         if not returns:
             print(f"⚠️ No pending returns found for SKU: {sku}")
@@ -667,7 +681,7 @@ def accept_returns_by_sku(sku: str, quantity_to_process: int, new_status: str, u
         processed_ids = []
         total_quantity = 0
 
-        for return_record in returns:
+        for return_record in returns[:quantity_to_process]:  # Limit processing to requested quantity
             ref = return_record.reference
             update_fields = {
                 "status": new_status,
@@ -676,16 +690,30 @@ def accept_returns_by_sku(sku: str, quantity_to_process: int, new_status: str, u
 
             if user:
                 update_fields["accepted_by"] = user
+                print(f"📝 DEBUG: Adding user '{user}' to update fields")
 
+            print(f"📝 DEBUG: Updating return {return_record.id} with fields: {update_fields}")
             transaction.update(ref, update_fields)
             processed_ids.append(return_record.id)
             total_quantity += return_record.to_dict().get("quantity", 1)
+            print(f"✅ DEBUG: Return {return_record.id} marked for update")
 
+        print(f"📝 DEBUG: Transaction processing complete. processed_ids={processed_ids}, total_quantity={total_quantity}")
         return total_quantity, processed_ids
 
     try:
+        print(f"🚀 DEBUG: Executing transaction for SKU={sku}")
         processed_qty, processed_ids = process_returns(transaction)
+        print(f"✅ DEBUG: Transaction executed successfully. processed_qty={processed_qty}, processed_ids={processed_ids}")
         print(f"✅ Successfully processed {len(processed_ids)} returns for SKU {sku}")
+        
+        # Clear session state to force fresh reload in UI layer
+        # This ensures we get fresh data after Firestore propagates the changes
+        if processed_ids:
+            if "return_df" in st.session_state:
+                del st.session_state["return_df"]
+            print(f"✅ DEBUG: Cleared session state return_df - UI will reload fresh data")
+        
         return processed_qty, processed_ids
 
     except Exception as ex:
