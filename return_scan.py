@@ -1,3 +1,4 @@
+import database
 from returns.evanik_auth import evanik_login
 from returns.evanik_client import EvanikClient
 from returns.return_processor import process_awb_list
@@ -35,6 +36,8 @@ def render_return_scan_panel():
             if line.strip()
         ]
 
+        old_awbs = database.pending_awbs_list()
+
         with st.spinner("Processing returns..."):
             results = process_awb_list(
                 awbs,
@@ -45,5 +48,16 @@ def render_return_scan_panel():
                 st.session_state.user_role
             )
 
+            old_results = process_awb_list(
+                old_awbs,
+                client,
+                start_date.isoformat(),
+                end_date.isoformat(),
+                return_date.isoformat(),
+                st.session_state.user_role
+            )
+
         st.success("Done")
         st.dataframe(results)
+        st.markdown("### Reprocessing Pending AWBs")
+        st.dataframe(old_results)

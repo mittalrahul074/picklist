@@ -32,7 +32,6 @@ def get_party_filter_df(df, party_filter):
     print("DEBUG: No filter applied, returning all records")
     return df
 
-
 def extract_order_data(file_buffer, platform):
     """
     Extracts order data from Excel file or CSV file based on selected platform.
