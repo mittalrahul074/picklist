@@ -1,6 +1,7 @@
 from datetime import date
 from returns.evanik_client import EvanikClient
 import re
+from database import pending_awb, remove_pending_awb
 
 def process_awb_list(awb_list, client, start_date, end_date, return_date,user_role):
     results = []
@@ -17,6 +18,7 @@ def process_awb_list(awb_list, client, start_date, end_date, return_date,user_ro
 
         if "error" in record:
             print(f"DEBUG: Error fetching record for AWB {awb}: {record['error']}")
+            pending_awb(awb)
             results.append((awb, record["error"]))
             continue
 
@@ -29,9 +31,11 @@ def process_awb_list(awb_list, client, start_date, end_date, return_date,user_ro
 
         if update.get("updateResult") == 1:
             print(f"DEBUG: Successfully marked AWB {awb} as returned")
+            remove_pending_awb(awb)
             results.append((awb, "SUCCESS"))
         else:
             print(f"DEBUG: Failed to mark AWB {awb} as returned: {update}")
+            pending_awb(awb)
             results.append((awb, f"FAILED: {update}"))
 
     return results

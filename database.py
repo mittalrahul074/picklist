@@ -788,3 +788,43 @@ def get_user_productivity():
         productivity_df[col] = productivity_df[col].astype(int)
 
     return productivity_df
+
+
+def pending_awb(awb):
+    # upload the pending awb to a db collection named 'pending_awbs' with field 'awb' and 'timestamp' and collection id as awb
+    db = get_db_connection()
+    if db is None:
+        print("❌ Database connection failed in pending_awb")
+        return
+    pending_ref = db.collection("pending_awbs").document(awb)
+    pending_ref.set({
+        "awb": awb,
+        "timestamp": firestore.SERVER_TIMESTAMP
+    })
+    print(f"✅ Pending AWB {awb} recorded in database.")
+
+def pending_awbs_list():
+    # fetch all pending awbs from the db collection named 'pending_awbs'
+    db = get_db_connection()
+    if db is None:
+        print("❌ Database connection failed in pending_awbs_list")
+        return []
+    pending_ref = db.collection("pending_awbs")
+    docs = pending_ref.stream()
+    awb_list = [doc.id for doc in docs]
+    print(f"✅ Fetched {len(awb_list)} pending AWBs from database.")
+    return awb_list
+
+def remove_pending_awb(awb):
+    # remove the awb if it exists or else just skip no error should occure
+    db = get_db_connection()
+    if db is None:
+        print("❌ Database connection failed in remove_pending_awb")
+        return
+    try:
+        pending_ref = db.collection("pending_awbs").document(awb)
+        if pending_ref.get().exists:
+            pending_ref.delete()
+            print(f"✅ Removed pending AWB {awb} from database.")
+    except Exception as e:
+        print(f"⚠️ Could not remove pending AWB {awb}: {e}")
