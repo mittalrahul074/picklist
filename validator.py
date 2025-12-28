@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import database
 from utils import get_swipe_card_html,next_sku
 from database import get_orders_grouped_by_sku, update_orders_for_sku, calculate_order_counts,get_orders_from_db
 import time
@@ -106,7 +107,9 @@ def render_validator_panel():
         sku_col, btn_col,wng_btn,rmv_btn = st.columns([2,2,2, 2])
 
         with sku_col:
+            img_url  = database.get_product_image_url(sku)
             st.subheader(f"{sl_no}. SKU: {sku}")
+            st.markdown(f"[{sku}]({img_url})", unsafe_allow_html=True)
             st.caption(f"Total Quantity: {total_qty}")
 
         with rmv_btn:
