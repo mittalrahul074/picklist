@@ -10,10 +10,21 @@ def next_sku():
         st.session_state.current_index = 0
 
 def get_party_filter_df(df, party_filter):
+    # Filter dataframe based on party_filter
+    # "Both" returns all records kangan (sku starts with K or L) and rs (sku starts with R)
+    print(f"DEBUG: get_party_filter_df called with party_filter={party_filter}")
+    print(f"DEBUG: Input dataframe shape: {df.shape}")
+    
     if party_filter == "Kangan":
-        return df[df["sku"].str.startswith("K")]
+        filtered_df = df[df["sku"].str.startswith(("K","L","k","l"))]
+        print(f"DEBUG: Filtered to Kangan (K/L), result shape: {filtered_df.shape}")
+        return filtered_df
     elif party_filter == "RS":
-        return df[df["sku"].str.startswith("R")]
+        filtered_df = df[df["sku"].str.startswith(("R","r"))]
+        print(f"DEBUG: Filtered to RS (R), result shape: {filtered_df.shape}")
+        return filtered_df
+    
+    print(f"DEBUG: No filter applied, returning all records")
     return df
 
 def extract_order_data(file_buffer, platform):

@@ -8,14 +8,12 @@ warnings.filterwarnings("ignore", message=".*st.cache.*deprecated.*")
 from auth import authenticate_user, logout_user, set_cookie, get_cookie
 from admin import render_admin_panel
 from picker_validator import render_picker_validator_panel
-from validator import render_validator_panel
 from dashboard import render_dashboard
 from firestore_delete_app import render_delete_panel
 from database import init_database, get_party, get_user_type
 from search import render_search_panel
 from return_scan import render_return_scan_panel
 from accept_returns import render_accept_returns_panel
-from database import get_orders_from_db, get_orders_grouped_by_sku
 # -------------------------------------------------------------------
 # CONFIG
 # -------------------------------------------------------------------

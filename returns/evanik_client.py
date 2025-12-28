@@ -60,6 +60,6 @@ class EvanikClient:
         #if sku is a string and if it has "_Free Size" in it, then remove that part
         if isinstance(sku, str) and "_Free Size" in sku:
             sku = sku.replace("_Free Size", "")
-        database.enter_return_data(item['orderid'], return_date, user_role,awb,sku)
+        database.enter_return_data(item['orderid'], return_date, user_role,awb,sku,"m_return")
 
         return res.json()
