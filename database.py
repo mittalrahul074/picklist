@@ -354,13 +354,26 @@ def get_returns_from_db(status):
         st.warning(error_msg)
         return pd.DataFrame()
 
-def update_status(order_id,status, platform):
+# if where parameter is given then update status only for that platform where old status is where parameter
+def update_status(order_id,status, platform, where=None):
     db = get_db_connection()
     orders_ref = db.collection("orders").document(order_id)
 
     order_data = orders_ref.get().to_dict()  # Fetch order data safely
     
     if order_data:
+        if where:
+            if order_data.get("status") != where:
+                print(f"⚠️ Order {order_id} status is not {where}. Skipping update.")
+                #add this orderid to cancelled collection with field order_id,status,platform,timestamp
+                cancelled_ref = db.collection("cancelled_orders").document(order_id)
+                cancelled_ref.set({
+                    "order_id": order_id,
+                    "status": status,
+                    "platform": platform,
+                    "timestamp": datetime.utcnow()
+                })
+                return
         orders_ref.update({"status": status, "updated_at": datetime.utcnow(), "validated_by": platform})
         print(f"✅ Order {order_id} {status}.")
     else:
@@ -809,7 +822,8 @@ def pending_awbs_list():
     if db is None:
         print("❌ Database connection failed in pending_awbs_list")
         return []
-    pending_ref = db.collection("pending_awbs")
+    # where timestamp is older than 1 days
+    pending_ref = db.collection("pending_awbs").where("timestamp", "<=", datetime.utcnow() - timedelta(days=1))
     docs = pending_ref.stream()
     awb_list = [doc.id for doc in docs]
     print(f"✅ Fetched {len(awb_list)} pending AWBs from database.")
