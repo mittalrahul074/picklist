@@ -14,6 +14,7 @@ from database import init_database, get_party, get_user_type
 from search import render_search_panel
 from return_scan import render_return_scan_panel
 from accept_returns import render_accept_returns_panel
+from cancelled_list import render_cancelled_list_panel
 # -------------------------------------------------------------------
 # CONFIG
 # -------------------------------------------------------------------
@@ -220,6 +221,10 @@ with st.sidebar:
                 st.session_state.page = "accept_returns"
                 st.rerun()
 
+            if st.button("Cancelled List"):
+                st.session_state.page = "cancelled_list"
+                st.rerun()
+
         if st.session_state.user_role == "admin":
             if st.button("Delete"):
                 st.session_state.page = "delete"
@@ -249,5 +254,7 @@ else:
         render_return_scan_panel()
     elif st.session_state.page == "accept_returns":
         render_accept_returns_panel()
+    elif st.session_state.page == "cancelled_list":
+        render_cancelled_list_panel()
     elif st.session_state.page == "delete":
         render_delete_panel()
