@@ -15,27 +15,20 @@ import time
 from database import (
     get_returns_grouped_by_sku,
     accept_returns_by_sku,
-    get_returns_from_db
+    get_cancelled_from_db
 )
 import utils
 
 # -------------------------------------------------------------------
 # Constants
 # -------------------------------------------------------------------
-PARTY_STATUS_MAPPING = {
-    "Kangan": "accepted_kangan",
-    "RS": "accepted_rs"
-}
 
-RETURN_STATUS = "m_return"
-SESSION_KEY_RETURN_DF = "return_df"
-SESSION_KEY_FORCE_RELOAD = "force_reload_returns"
+STATUS = "CANCELLED"
+SESSION_KEY_CANCELLED_DF = "cancelled_df"
+SESSION_KEY_FORCE_RELOAD = "force_reload_cancelled"
 SESSION_KEY_PREFIX_QTY = "accept_qty_"
 
 FIRESTORE_CONSISTENCY_DELAY = 0.8  # seconds
-
-ACCEPTANCE_MODES = ["Accept One by One", "Accept All at Once"]
-SESSION_KEY_ACCEPTANCE_MODE = "accept_returns_mode"
 
 
 # -------------------------------------------------------------------
@@ -47,29 +40,6 @@ PageInfo = Dict[str, str]
 # -------------------------------------------------------------------
 # Helper Functions
 # -------------------------------------------------------------------
-def _get_page_configuration(party_filter: str) -> Optional[PageInfo]:
-    """
-    Determine the page configuration based on the selected party filter.
-    
-    Args:
-        party_filter: The party filter value ("Kangan", "RS", or "Both")
-    
-    Returns:
-        Dictionary containing page configuration or None if invalid party
-    """
-    if party_filter == "Both":
-        st.error("Please select a party to proceed.")
-        return None
-    
-    if party_filter not in PARTY_STATUS_MAPPING:
-        st.error(f"Invalid party filter: {party_filter}")
-        return None
-    
-    return {
-        'page_head': "Accept Returns",
-        'status': RETURN_STATUS,
-        'new_status': PARTY_STATUS_MAPPING[party_filter],
-    }
 
 
 def _load_cancelled_data() -> pd.DataFrame:
@@ -82,14 +52,14 @@ def _load_cancelled_data() -> pd.DataFrame:
     """
     # Handle force reload flag
     if st.session_state.get(SESSION_KEY_FORCE_RELOAD, False):
-        st.session_state.pop(SESSION_KEY_RETURN_DF, None)
+        st.session_state.pop(SESSION_KEY_CANCELLED_DF, None)
         st.session_state[SESSION_KEY_FORCE_RELOAD] = False
     
     # Load data if not in session state
-    if SESSION_KEY_RETURN_DF not in st.session_state:
-        st.session_state[SESSION_KEY_RETURN_DF] = get_cancelled_from_db(RETURN_STATUS)
+    if SESSION_KEY_CANCELLED_DF not in st.session_state:
+        st.session_state[SESSION_KEY_CANCELLED_DF] = get_cancelled_from_db(STATUS)
     
-    return st.session_state[SESSION_KEY_RETURN_DF].copy()
+    return st.session_state[SESSION_KEY_CANCELLED_DF].copy()
 
 
 def _cleanup_session_keys(current_skus: set) -> None:
@@ -109,26 +79,7 @@ def _cleanup_session_keys(current_skus: set) -> None:
         del st.session_state[key]
 
 
-def _initialize_quantity_key(sku: str, total_quantity: int) -> str:
-    """
-    Initialize and return the session state key for a SKU's quantity input.
-    
-    Args:
-        sku: The SKU identifier
-        total_quantity: The total available quantity for this SKU
-    
-    Returns:
-        The session state key for this SKU's quantity
-    """
-    key = f"{SESSION_KEY_PREFIX_QTY}{sku}"
-    
-    if key not in st.session_state or st.session_state[key] != total_quantity:
-        st.session_state[key] = total_quantity
-    
-    return key
-
-
-def _process_return_acceptance(
+def _process_cancelled_acceptance(
     sku: str,
     quantity: int,
     new_status: str,
@@ -147,7 +98,7 @@ def _process_return_acceptance(
         Tuple of (processed_quantity, processed_ids)
     """
     # Clear cached data before processing to ensure consistency
-    st.session_state.pop(SESSION_KEY_RETURN_DF, None)
+    st.session_state.pop(SESSION_KEY_CANCELLED_DF, None)
     
     try:
         processed_qty, processed_ids = accept_returns_by_sku(
