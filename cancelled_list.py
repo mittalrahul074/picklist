@@ -157,11 +157,7 @@ def render_cancelled_list_panel() -> None:
     - Handles user interactions
     """
     party_filter = st.session_state.get("party_filter")
-    page_config = _get_page_configuration(party_filter)
-    
-    if page_config is None:
-        return
-    
+        
     st.header("📦 Cancelled List")
     
     # Load and filter cancelled data
@@ -184,17 +180,16 @@ def render_cancelled_list_panel() -> None:
     
     # Render each SKU group
     for _, row in sku_groups.iterrows():
-        _render_sku_row(row, page_config, st.session_state.user_role)
+        _render_sku_row(row, st.session_state.user_role)
         st.divider()
 
 
-def _render_sku_row(row: pd.Series, page_config: PageInfo, user: str) -> None:
+def _render_sku_row(row: pd.Series, user: str) -> None:
     """
     Render a single SKU row with acceptance controls.
     
     Args:
         row: Pandas Series containing SKU data
-        page_config: Page configuration dictionary
         user: Current user identifier
     """
     sku = str(row["sku"])
@@ -222,7 +217,7 @@ def _render_sku_row(row: pd.Series, page_config: PageInfo, user: str) -> None:
             processed_qty, processed_ids = _process_return_acceptance(
                 sku=sku,
                 quantity=quantity,
-                new_status=page_config["new_status"],
+                new_status="CANCELLED_ACCEPTED",
                 user=user
             )
             _handle_acceptance_result(sku, processed_qty, processed_ids)
