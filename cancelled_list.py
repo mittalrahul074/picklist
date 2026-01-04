@@ -13,6 +13,7 @@ import pandas as pd
 import time
 
 from database import (
+    accept_cancelled,
     get_returns_grouped_by_sku,
     accept_returns_by_sku,
     get_cancelled_from_db
@@ -58,7 +59,8 @@ def _load_cancelled_data() -> pd.DataFrame:
     # Load data if not in session state
     if SESSION_KEY_CANCELLED_DF not in st.session_state:
         st.session_state[SESSION_KEY_CANCELLED_DF] = get_cancelled_from_db(STATUS)
-    
+    print(f"📝 DEBUG: Loaded cancelled returns into session state")
+    print(f"📝 DEBUG: {st.session_state[SESSION_KEY_CANCELLED_DF]}")
     return st.session_state[SESSION_KEY_CANCELLED_DF].copy()
 
 
@@ -80,8 +82,7 @@ def _cleanup_session_keys(current_skus: set) -> None:
 
 
 def _process_cancelled_acceptance(
-    sku: str,
-    quantity: int,
+    order_id: str,
     new_status: str,
     user: str
 ) -> Tuple[int, List[str]]:
@@ -101,10 +102,8 @@ def _process_cancelled_acceptance(
     st.session_state.pop(SESSION_KEY_CANCELLED_DF, None)
     
     try:
-        processed_qty, processed_ids = accept_returns_by_sku(
-            sku=sku,
-            quantity_to_process=quantity,
-            new_status=new_status,
+        processed_qty, processed_ids = accept_cancelled(
+            order_id=order_id,
             user=user
         )
         return processed_qty, processed_ids
@@ -162,9 +161,8 @@ def render_cancelled_list_panel() -> None:
     
     # Load and filter cancelled data
     cancelled_df = _load_cancelled_data()
-    filtered_df = utils.get_party_filter_df(cancelled_df, party_filter)
-    sku_groups = get_returns_grouped_by_sku(filtered_df)
-    
+    sku_groups = cancelled_df
+    print(f"📝 DEBUG: Loaded {(cancelled_df)} cancelled returns from DB")
     # Early return if no pending returns
     if sku_groups.empty:
         st.info("No pending returns")
@@ -192,31 +190,19 @@ def _render_sku_row(row: pd.Series, user: str) -> None:
         row: Pandas Series containing SKU data
         user: Current user identifier
     """
-    sku = str(row["sku"])
-    total_qty = int(row["total_returns"])
-    
-    col1, col2, col3 = st.columns([3, 2, 2])
+    sku = str(row["sku"])    
+    col1, col3 = st.columns([5, 2])
+    order_id = str(row["order_id"])
     
     with col1:
         st.subheader(sku)
-        st.caption(f"Available Returns: {total_qty}")
-    
-    with col2:
-        qty_key = _initialize_quantity_key(sku, total_qty)
-        quantity = st.number_input(
-            "Qty to accept",
-            min_value=1,
-            max_value=total_qty,
-            value=st.session_state[qty_key],
-            key=qty_key
-        )
-    
+        quantity = int(row["quantity"])
+        st.write(f"Pending Returns: **{quantity}**")    
     with col3:
         button_key = f"accept_{sku}"
         if st.button("✅ Accept", key=button_key, use_container_width=True):
-            processed_qty, processed_ids = _process_return_acceptance(
-                sku=sku,
-                quantity=quantity,
+            processed_qty, processed_ids =_process_cancelled_acceptance(
+                order_id=order_id,
                 new_status="CANCELLED_ACCEPTED",
                 user=user
             )
