@@ -14,7 +14,6 @@ import time
 
 from database import (
     accept_cancelled,
-    get_cancelled_grouped_by_sku,
     accept_returns_by_sku,
     get_cancelled_from_db
 )
