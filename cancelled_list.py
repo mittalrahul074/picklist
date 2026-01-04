@@ -14,7 +14,7 @@ import time
 
 from database import (
     accept_cancelled,
-    get_returns_grouped_by_sku,
+    get_cancelled_grouped_by_sku,
     accept_returns_by_sku,
     get_cancelled_from_db
 )
@@ -199,7 +199,7 @@ def _render_sku_row(row: pd.Series, user: str) -> None:
         quantity = int(row["quantity"])
         st.write(f"Pending Returns: **{quantity}**")    
     with col3:
-        button_key = f"accept_{sku}"
+        button_key = f"accept_{order_id}"
         if st.button("✅ Accept", key=button_key, use_container_width=True):
             processed_qty, processed_ids =_process_cancelled_acceptance(
                 order_id=order_id,
