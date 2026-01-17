@@ -222,12 +222,8 @@ def get_swipe_card_html(order_data, action_type):
     breakdown = order_data.get('dispatch_date', [])
 
     if action_type == 'pick':
-        left_action = "Skip"
-        right_action = "Pick"
         card_id = f"pick_card_{sku}"
     else:
-        left_action = "Reject"
-        right_action = "Validate"
         card_id = f"validate_card_{sku}"
 
     # Build dispatch table rows
@@ -236,7 +232,15 @@ def get_swipe_card_html(order_data, action_type):
         dispatch_table_rows += f"""<tr><td>{row['date']}</td><td style="text-align:right;">{row['quantity']}</td></tr>"""
 
     # Final HTML
-    html = f"""<div class="swipe-card" id="{card_id}" data-sku="{sku}"><div class="card-content"><h3>SKU: {sku}</h3><table style="width:100%; margin: 10px 0; border-collapse: collapse;"><thead><tr><th style="text-align:left;">Dispatch Date</th><th style="text-align:right;">Quantity</th></tr></thead><tbody>{dispatch_table_rows}</tbody></table><p style="font-size: 1.3rem; text-align: right; margin-top: 8px;"><strong>Total Quantity:</strong> {total_quantity}</p></div></div>"""
+    html = f"""<div class="swipe-card" id="{card_id}" data-sku="{sku}" style='
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+            user-select: text;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+         '><div class="card-content"><h3>SKU: {sku}</h3><table style="width:100%; margin: 10px 0; border-collapse: collapse;"><thead><tr><th style="text-align:left;">Dispatch Date</th><th style="text-align:right;">Quantity</th></tr></thead><tbody>{dispatch_table_rows}</tbody></table><p style="font-size: 1.3rem; text-align: right; margin-top: 8px;"><strong>Total Quantity:</strong> {total_quantity}</p></div></div>"""
     return html
 
 def export_orders_to_excel():
