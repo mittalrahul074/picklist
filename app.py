@@ -1,9 +1,6 @@
 import os
-import streamlit as st
 import warnings
-
-# Suppress the st.cache deprecation warning if it's coming from dependencies
-warnings.filterwarnings("ignore", message=".*st.cache.*deprecated.*")
+import streamlit as st
 
 from auth import authenticate_user, logout_user, set_cookie, get_cookie
 from admin import render_admin_panel
@@ -15,193 +12,201 @@ from search import render_search_panel
 from return_scan import render_return_scan_panel
 from accept_returns import render_accept_returns_panel
 from cancelled_list import render_cancelled_list_panel
+
 # -------------------------------------------------------------------
-# CONFIG
+# SUPPRESS WARNINGS (DEPENDENCY NOISE)
+# -------------------------------------------------------------------
+warnings.filterwarnings("ignore", message=".*st.cache.*deprecated.*")
+
+# -------------------------------------------------------------------
+# CONSTANTS
+# -------------------------------------------------------------------
+APP_TITLE = "Order Management System"
+CSS_PATH = "assets/styles.css"
+
+PAGE_DASHBOARD = "dashboard"
+PAGE_ADMIN = "admin"
+PAGE_PICKER = "picker"
+PAGE_VALIDATOR = "validator"
+PAGE_SEARCH = "search"
+PAGE_RETURN_SCAN = "return_scan"
+PAGE_ACCEPT_RETURNS = "accept_returns"
+PAGE_CANCELLED_LIST = "cancelled_list"
+PAGE_DELETE = "delete"
+
+# User types (document these clearly)
+USER_PICKER_ONLY = 1
+USER_RETURNS_ACCESS = {2, 3, 4, 5}
+
+# -------------------------------------------------------------------
+# PAGE CONFIG
 # -------------------------------------------------------------------
 st.set_page_config(
-    page_title="Order Management System",
+    page_title=APP_TITLE,
     page_icon="📦",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed",
 )
 
 # -------------------------------------------------------------------
-# SESSION INITIALIZATION
+# SESSION STATE INITIALIZATION
 # -------------------------------------------------------------------
-def init_state():
+def init_session_state() -> None:
     defaults = {
         "authenticated": False,
         "user_role": None,
-        "party_filter": None,
         "user_type": None,
-        "page": "dashboard",
+        "party_filter": "Both",
+        "page": PAGE_DASHBOARD,
         "db_initialized": False,
     }
-    for k, v in defaults.items():
-        if k not in st.session_state:
-            st.session_state[k] = v
 
-init_state()
+    for key, value in defaults.items():
+        st.session_state.setdefault(key, value)
+
+init_session_state()
 
 # -------------------------------------------------------------------
-# DB INITIALIZATION
+# DATABASE INIT (ONCE)
 # -------------------------------------------------------------------
 if not st.session_state.db_initialized:
     init_database()
     st.session_state.db_initialized = True
 
 # -------------------------------------------------------------------
-# LOAD CSS
+# LOAD GLOBAL CSS
 # -------------------------------------------------------------------
-css_path = "assets/styles.css"
-if os.path.exists(css_path):
-    with open(css_path) as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+if os.path.exists(CSS_PATH):
+    with open(CSS_PATH, "r", encoding="utf-8") as css_file:
+        st.markdown(
+            f"<style>{css_file.read()}</style>",
+            unsafe_allow_html=True,
+        )
 
 # -------------------------------------------------------------------
-# AUTO-LOGIN FROM COOKIE
+# AUTH: AUTO LOGIN FROM COOKIE
 # -------------------------------------------------------------------
-try:
-    cookie_user = get_cookie("logged_user")
-    # st.write(f"🍪 DEBUG: Cookie user: {cookie_user}")
-    
-    if cookie_user and not st.session_state.authenticated:
-        # st.write("🔄 DEBUG: Attempting auto-login from cookie...")
-        # Auto-login user
+def attempt_auto_login() -> None:
+    if st.session_state.authenticated:
+        return
+
+    try:
+        username = get_cookie("logged_user")
+        if not username:
+            return
+
         st.session_state.authenticated = True
-        st.session_state.user_role = cookie_user
-        st.session_state.user_type = get_user_type(cookie_user)
+        st.session_state.user_role = username
+        st.session_state.user_type = get_user_type(username)
+
         try:
-            st.session_state.party_filter = get_party(cookie_user)
-            # st.write("✅ DEBUG: Auto-login successful")
-        except Exception as e:
-            # st.write(f"⚠️ DEBUG: Error getting party for auto-login: {e}")
+            st.session_state.party_filter = get_party(username)
+        except Exception:
             st.session_state.party_filter = "Both"
-    # elif not cookie_user:
-    #     st.write("🍪 DEBUG: No cookie found, manual login required")
-except (Exception, SystemExit) as e:
-    # st.write(f"⚠️ DEBUG: Cookie auto-login failed: {e}")
-    # Continue without auto-login
-    pass
+
+    except Exception:
+        # Silent fail: user can still log in manually
+        pass
+
+attempt_auto_login()
 
 # -------------------------------------------------------------------
-# SIDEBAR LOGIN UI
+# SIDEBAR
 # -------------------------------------------------------------------
-with st.sidebar:
-    st.header("Login")
+def render_login_sidebar() -> None:
+    with st.sidebar:
+        st.header("Login")
 
-    if not st.session_state.authenticated:
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
-        print ("Username:", username)
-        
+
         if st.button("Login"):
-            print("Attempting login for user:", username)
-            # st.write(f"DEBUG: Login button clicked for user: {username}")
-            
-            # Add validation
             if not username or not password:
                 st.error("Please enter both username and password")
-                # st.write("DEBUG: Missing username or password")
-            else:
-                # st.write(f"DEBUG: Calling authenticate_user for: {username}")
-                auth_result = authenticate_user(username, password)
-                # st.write(f"DEBUG: Authentication result: {auth_result}")
-                
-                if auth_result:
-                    st.session_state.authenticated = True
-                    st.session_state.user_role = username
-                    st.session_state.user_type = get_user_type(username)
-                    
-                    # Fetch party filter
-                    try:
-                        # st.write("🔍 DEBUG: Fetching party filter...")
-                        party = get_party(username)
-                        st.session_state.party_filter = party
-                        # st.write(f"✅ DEBUG: Party filter set to: {party}")
-                    except Exception as e:
-                        error_msg = f"❌ Error fetching party: {e}"
-                        print(error_msg)
-                        # st.error(error_msg)
-                        st.session_state.party_filter = "Both"  # Default fallback
-                        # st.write("🔄 DEBUG: Using default party filter: Both")
+                return
 
-                    # Save cookie → browser persistent login
-                    try:
-                        # st.write("🍪 DEBUG: Setting cookie...")
-                        cookie_success = set_cookie("logged_user", username)
-                        # if cookie_success:
-                        #     st.write("✅ DEBUG: Cookie set successfully")
-                        # else:
-                        #     st.write("⚠️ DEBUG: Cookie setting failed, but login will continue")
-                    except (Exception, SystemExit) as e:
-                        # st.write(f"⚠️ DEBUG: Error setting cookie: {e}, but login will continue")
-                        pass
+            if not authenticate_user(username, password):
+                st.error("Invalid username or password")
+                return
 
-                    st.success("Logged in successfully!")
-                    st.rerun()
+            # Login success
+            st.session_state.authenticated = True
+            st.session_state.user_role = username
+            st.session_state.user_type = get_user_type(username)
 
-                else:
-                    st.error("Invalid username or password")
-                    # st.write("DEBUG: Authentication failed")
-    else:
+            try:
+                st.session_state.party_filter = get_party(username)
+            except Exception:
+                st.session_state.party_filter = "Both"
+
+            try:
+                set_cookie("logged_user", username)
+            except Exception:
+                pass
+
+            st.success("Logged in successfully")
+            st.rerun()
+
+def render_navigation_sidebar() -> None:
+    with st.sidebar:
         st.success(f"Logged in as {st.session_state.user_role}")
-
         st.markdown("---")
         st.header("Navigation")
 
-        # Party filter for Both users
-        user_party = get_party(st.session_state.user_role)
-        if user_party == "Both":
-            selected = st.selectbox(
+        # Party selector
+        if get_party(st.session_state.user_role) == "Both":
+            selected_party = st.selectbox(
                 "Select Party",
                 ["Both", "RS", "Kangan"],
-                index=["Both", "RS", "Kangan"].index(st.session_state.party_filter)
+                index=["Both", "RS", "Kangan"].index(
+                    st.session_state.party_filter
+                ),
             )
-            if selected != st.session_state.party_filter:
-                st.session_state.party_filter = selected
+
+            if selected_party != st.session_state.party_filter:
+                st.session_state.party_filter = selected_party
                 st.rerun()
         else:
-            st.info(f"Party: {user_party}")
+            st.info(f"Party: {st.session_state.party_filter}")
 
-        # NAV BUTTONS
+        # Navigation buttons
         if st.button("Dashboard"):
-            st.session_state.page = "dashboard"
+            st.session_state.page = PAGE_DASHBOARD
             st.rerun()
-        if st.session_state.user_type != 1:  # Not a picker-only user 
+
+        if st.session_state.user_type != USER_PICKER_ONLY:
             if st.button("Upload Orders"):
-                st.session_state.page = "admin"
+                st.session_state.page = PAGE_ADMIN
                 st.rerun()
 
         if st.button("Pick Orders"):
-            st.session_state.page = "picker"
+            st.session_state.page = PAGE_PICKER
             st.rerun()
 
         if st.button("Validate Orders"):
-            st.session_state.page = "validator"
+            st.session_state.page = PAGE_VALIDATOR
             st.rerun()
 
-        if st.button(f"Search Orders"):
-            st.session_state.page = "search"
+        if st.button("Search Orders"):
+            st.session_state.page = PAGE_SEARCH
             st.rerun()
 
-        # upload return scan file for user type greater than 1
-        if st.session_state.user_type == 2 or st.session_state.user_type ==3 or st.session_state.user_type ==4  or st.session_state.user_type ==5:
+        if st.session_state.user_type in USER_RETURNS_ACCESS:
             if st.button("Upload Return Scan"):
-                st.session_state.page = "return_scan"
+                st.session_state.page = PAGE_RETURN_SCAN
                 st.rerun()
 
             if st.button("Accept Returns"):
-                st.session_state.page = "accept_returns"
+                st.session_state.page = PAGE_ACCEPT_RETURNS
                 st.rerun()
 
             if st.button("Cancelled List"):
-                st.session_state.page = "cancelled_list"
+                st.session_state.page = PAGE_CANCELLED_LIST
                 st.rerun()
 
         if st.session_state.user_role == "admin":
             if st.button("Delete"):
-                st.session_state.page = "delete"
+                st.session_state.page = PAGE_DELETE
                 st.rerun()
 
         if st.button("Logout"):
@@ -209,26 +214,31 @@ with st.sidebar:
             st.rerun()
 
 # -------------------------------------------------------------------
-# MAIN CONTENT
+# MAIN ENTRY
 # -------------------------------------------------------------------
 if not st.session_state.authenticated:
+    render_login_sidebar()
     st.info("Please log in to access the system.")
 else:
-    if st.session_state.page == "dashboard":
+    render_navigation_sidebar()
+
+    page = st.session_state.page
+
+    if page == PAGE_DASHBOARD:
         render_dashboard()
-    elif st.session_state.page == "admin":
+    elif page == PAGE_ADMIN:
         render_admin_panel()
-    elif st.session_state.page == "picker":
+    elif page == PAGE_PICKER:
         render_picker_validator_panel("picker")
-    elif st.session_state.page == "validator":
+    elif page == PAGE_VALIDATOR:
         render_picker_validator_panel("validator")
-    elif st.session_state.page == "search":
+    elif page == PAGE_SEARCH:
         render_search_panel()
-    elif st.session_state.page == "return_scan":
+    elif page == PAGE_RETURN_SCAN:
         render_return_scan_panel()
-    elif st.session_state.page == "accept_returns":
+    elif page == PAGE_ACCEPT_RETURNS:
         render_accept_returns_panel()
-    elif st.session_state.page == "cancelled_list":
+    elif page == PAGE_CANCELLED_LIST:
         render_cancelled_list_panel()
-    elif st.session_state.page == "delete":
+    elif page == PAGE_DELETE:
         render_delete_panel()
