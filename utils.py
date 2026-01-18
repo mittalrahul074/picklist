@@ -1,36 +1,53 @@
 import pandas as pd
 import streamlit as st
 import io
+import logging
+from typing import Optional
 from datetime import datetime, timedelta
 from database import get_orders_from_db,update_status
 
-def next_sku():
-    st.session_state.current_index += 1
-    if st.session_state.current_index >= len(st.session_state.sku_groups):
-        st.session_state.current_index = 0
+# -------------------------------------------------------------------
+# Logging Configuration
+# -------------------------------------------------------------------
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s"
+)
 
-def get_party_filter_df(df, party_filter):
-    print(f"DEBUG: get_party_filter_df called with party_filter={party_filter}")
-    print(f"DEBUG: Input dataframe shape: {df.shape}")
-    print(f"DEBUG: Input dataframe columns: {list(df.columns)}")
+DATE_OUTPUT_FORMAT = "%d-%m-%Y"
 
-    # 🚨 SAFETY CHECK
+# -------------------------------------------------------------------
+# Session Helpers
+# -------------------------------------------------------------------
+
+def next_sku() -> None:
+    """Move to next SKU safely."""
+    st.session_state.current_index = (
+        st.session_state.current_index + 1
+    ) % len(st.session_state.sku_groups)
+
+# -------------------------------------------------------------------
+# SKU / Party Filtering
+# -------------------------------------------------------------------
+def get_party_filter_df(df: pd.DataFrame, party: str) -> pd.DataFrame:
+    """
+    Filter orders based on SKU prefix rules.
+    """
     if "sku" not in df.columns:
-        print("⚠️ WARNING: 'sku' column not found. Skipping party filter.")
+        logger.warning("SKU column missing. Skipping party filter.")
         return df
 
-    if party_filter == "Kangan":
-        filtered_df = df[df["sku"].astype(str).str.startswith(("K","L","k","l"))]
-        print(f"DEBUG: Filtered to Kangan (K/L), result shape: {filtered_df.shape}")
-        return filtered_df
+    sku_series = df["sku"].astype(str)
 
-    elif party_filter == "RS":
-        filtered_df = df[df["sku"].astype(str).str.startswith(("R","r"))]
-        print(f"DEBUG: Filtered to RS (R), result shape: {filtered_df.shape}")
-        return filtered_df
+    if party == "Kangan":
+        return df[sku_series.str.startswith(("K", "L"), na=False)]
 
-    print("DEBUG: No filter applied, returning all records")
+    if party == "RS":
+        return df[sku_series.str.startswith("R", na=False)]
+
     return df
+
 
 def extract_order_data(file_buffer, platform):
     """
