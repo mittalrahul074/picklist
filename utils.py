@@ -32,7 +32,7 @@ def next_sku() -> None:
 # -------------------------------------------------------------------
 # SKU / Party Filtering
 # -------------------------------------------------------------------
-def filter_by_party(df: pd.DataFrame, party: str) -> pd.DataFrame:
+def get_party_filter_df(df: pd.DataFrame, party: str) -> pd.DataFrame:
     """
     Filter orders based on SKU prefix rules.
     """
