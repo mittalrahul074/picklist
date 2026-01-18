@@ -1,11 +1,9 @@
 import streamlit as st
-import pandas as pd
 import os
 from utils import extract_order_data, export_orders_to_excel
 from database import add_orders_to_db, get_orders_from_db, calculate_order_counts
 
 def render_admin_panel():
-
     if "orders_df" not in st.session_state:
         st.session_state.orders_df = get_orders_from_db()
         df = st.session_state.orders_df
