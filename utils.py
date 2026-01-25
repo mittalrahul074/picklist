@@ -108,7 +108,7 @@ def process_meesho_orders(df: pd.DataFrame) -> Optional[pd.DataFrame]:
             order_id=str(row.iloc[1]),
             status=str(row.iloc[0]),
             platform="meesho",
-            source="new"
+            where="new"
         )
 
     # --- Pending Orders ---
