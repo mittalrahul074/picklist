@@ -151,16 +151,17 @@ def render_navigation_sidebar() -> None:
     with st.sidebar:
         st.success(f"Logged in as {st.session_state.user_role}")
         st.markdown("---")
-        st.header("Navigation")
 
-        # Party selector
-        if get_party(st.session_state.user_role) == "Both":
+        # =========================
+        # Party Selector
+        # =========================
+        allowed_party = get_party(st.session_state.user_role)
+
+        if allowed_party == "Both":
             selected_party = st.selectbox(
-                "Select Party",
+                "Party",
                 ["Both", "RS", "Kangan"],
-                index=["Both", "RS", "Kangan"].index(
-                    st.session_state.party_filter
-                ),
+                index=["Both", "RS", "Kangan"].index(st.session_state.party_filter),
             )
 
             if selected_party != st.session_state.party_filter:
@@ -169,45 +170,46 @@ def render_navigation_sidebar() -> None:
         else:
             st.info(f"Party: {st.session_state.party_filter}")
 
-        # Navigation buttons
-        if st.button("Dashboard"):
-            st.session_state.page = PAGE_DASHBOARD
-            st.rerun()
+        st.markdown("---")
 
-        if st.session_state.user_type != USER_PICKER_ONLY:
-            if st.button("Upload Orders"):
-                st.session_state.page = PAGE_ADMIN
-                st.rerun()
+        # =========================
+        # Navigation
+        # =========================
+        PAGES = {
+            "Dashboard": PAGE_DASHBOARD,
+            "Pick Orders": PAGE_PICKER,
+            "Validate Orders": PAGE_VALIDATOR,
+            "Search Orders": PAGE_SEARCH,
+            "Upload Orders": PAGE_ADMIN,
+            "Upload Return Scan": PAGE_RETURN_SCAN,
+            "Accept Returns": PAGE_ACCEPT_RETURNS,
+            "Cancelled List": PAGE_CANCELLED_LIST,
+            "Delete": PAGE_DELETE,
+        }
 
-        if st.button("Pick Orders"):
-            st.session_state.page = PAGE_PICKER
-            st.rerun()
+        ROLE_ACCESS = {
+            "picker": {"Dashboard", "Pick Orders"},
+            "validator": {"Dashboard", "Validate Orders", "Search Orders"},
+            "admin": set(PAGES.keys()),
+        }
 
-        if st.button("Validate Orders"):
-            st.session_state.page = PAGE_VALIDATOR
-            st.rerun()
+        user_role = st.session_state.user_role
+        allowed_pages = sorted(ROLE_ACCESS.get(user_role, {"Dashboard"}))
 
-        if st.button("Search Orders"):
-            st.session_state.page = PAGE_SEARCH
-            st.rerun()
+        selected_page = st.selectbox(
+            "Navigate",
+            allowed_pages,
+            index=allowed_pages.index(
+                next(
+                    (k for k, v in PAGES.items() if v == st.session_state.page),
+                    "Dashboard",
+                )
+            ),
+        )
 
-        if st.session_state.user_type in USER_RETURNS_ACCESS:
-            if st.button("Upload Return Scan"):
-                st.session_state.page = PAGE_RETURN_SCAN
-                st.rerun()
+        st.session_state.page = PAGES[selected_page]
 
-            if st.button("Accept Returns"):
-                st.session_state.page = PAGE_ACCEPT_RETURNS
-                st.rerun()
-
-            if st.button("Cancelled List"):
-                st.session_state.page = PAGE_CANCELLED_LIST
-                st.rerun()
-
-        if st.session_state.user_role == "admin":
-            if st.button("Delete"):
-                st.session_state.page = PAGE_DELETE
-                st.rerun()
+        st.markdown("---")
 
         if st.button("Logout"):
             logout_user()
