@@ -8,6 +8,10 @@ import pandas as pd
 import streamlit as st
 import time
 
+def load_orders(force=False):
+    """Load orders into session state safely"""
+    if force or "orders_df" not in st.session_state:
+        st.session_state.orders_df = get_orders_from_db()
 
 def add_orders_to_db(orders_df, platform):
     """

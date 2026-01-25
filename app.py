@@ -3,7 +3,7 @@ import warnings
 import streamlit as st
 
 from auth import authenticate_user, logout_user, set_cookie, get_cookie
-from admin import render_admin_panel
+from admin.admin_panel import render_admin_panel
 from picker_validator import render_picker_validator_panel
 from dashboard import render_dashboard
 from firestore_delete_app import render_delete_panel
