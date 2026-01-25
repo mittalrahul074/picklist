@@ -164,6 +164,49 @@ def update_status(order_id,status, platform, where=None):
     else:
         print(f"⚠️ Order {order_id} not found in Firestore.")
 
+def bulk_update_status(cancelled_df: pd.DataFrame, platform: str):
+    db = get_db_connection()
+    if db is None:
+        return
+
+    BATCH_LIMIT = 500
+    batch = db.batch()
+    op_count = 0
+
+    for _, row in cancelled_df.iterrows():
+        order_id = str(row.iloc[1]).strip()
+        status = str(row.iloc[0]).strip().lower()
+
+        if not order_id:
+            continue
+
+        order_ref = db.collection("orders").document(order_id)
+
+        batch.set(
+            order_ref,
+            {
+                "status": status,
+                "updated_at": datetime.utcnow(),
+                "validated_by": platform
+            },
+            merge=True  # 👈 no read required
+        )
+
+        op_count += 1
+
+        # Commit every 500 writes
+        if op_count == BATCH_LIMIT:
+            batch.commit()
+            batch = db.batch()
+            op_count = 0
+
+    # Commit remaining writes
+    if op_count > 0:
+        batch.commit()
+
+    print("✅ Bulk status update completed")
+
+
 def get_orders_grouped_by_sku(orders_df, status=None):
     """
     Groups orders by SKU and dispatch date, ensuring earliest dispatch orders come first.
