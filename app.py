@@ -188,15 +188,17 @@ def render_navigation_sidebar() -> None:
         }
 
         ROLE_ACCESS = {
-            "1": {"Dashboard", "Pick Orders","Validate Orders"}, # Picker only
-            "validator": {"Dashboard", "Validate Orders", "Search Orders"},
-            "3": {"Dashboard", "Pick Orders", "Validate Orders", "Search Orders","Accept Returns", "Cancelled List","Upload Orders", "Upload Return Scan"}, # Full access except Admin
-            "4": {"Dashboard", "Search Orders", "Accept Returns", "Cancelled List"},
-            "5": set(PAGES.keys()), # Admin has access to all pages
+            1: {"Dashboard", "Pick Orders","Validate Orders"}, # Picker only
+            2: {"Dashboard", "Validate Orders", "Search Orders"},
+            3: {"Dashboard", "Pick Orders", "Validate Orders", "Search Orders","Accept Returns", "Cancelled List","Upload Orders", "Upload Return Scan"}, # Full access except Admin
+            4: {"Dashboard", "Pick Orders", "Validate Orders", "Search Orders","Accept Returns", "Cancelled List","Upload Orders", "Upload Return Scan", "Delete"}, # Full access except Admin
+            5: set(PAGES.keys()), # Admin has access to all pages
         }
 
-        user_role = st.session_state.user_role
-        allowed_pages = sorted(ROLE_ACCESS.get(user_role, {"Dashboard"}))
+        user_type = st.session_state.user_type
+        print(f"USER TYPE: {user_type}")
+        allowed_pages = sorted(ROLE_ACCESS.get(user_type, {"Dashboard"}))
+        print(f"ALLOWED PAGES: {allowed_pages}")
 
         selected_page = st.selectbox(
             "Navigate",
