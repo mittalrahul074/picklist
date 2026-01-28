@@ -188,9 +188,11 @@ def render_navigation_sidebar() -> None:
         }
 
         ROLE_ACCESS = {
-            "picker": {"Dashboard", "Pick Orders"},
+            "1": {"Dashboard", "Pick Orders","Validate Orders"}, # Picker only
             "validator": {"Dashboard", "Validate Orders", "Search Orders"},
-            "admin": set(PAGES.keys()),
+            "3": {"Dashboard", "Pick Orders", "Validate Orders", "Search Orders","Accept Returns", "Cancelled List","Upload Orders", "Upload Return Scan"}, # Full access except Admin
+            "4": {"Dashboard", "Search Orders", "Accept Returns", "Cancelled List"},
+            "5": set(PAGES.keys()), # Admin has access to all pages
         }
 
         user_role = st.session_state.user_role

@@ -9,3 +9,4 @@ google-auth-oauthlib>=1.0.0
 plotly>=5.15.0
 streamlit-authenticator>=0.2.3
 streamlit-cookies-manager>=0.2.0
+passlib>=1.7.4
