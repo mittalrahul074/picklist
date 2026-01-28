@@ -7,6 +7,7 @@ import pandas as pd
 import streamlit as st
 
 from database import get_orders_from_db, update_status
+from db.orders import bulk_update_status
 
 # -------------------------------------------------------------------
 # Logging Configuration
@@ -103,13 +104,8 @@ def process_meesho_orders(df: pd.DataFrame) -> Optional[pd.DataFrame]:
     cancelled_mask = status_col.isin({"cancelled", "shipped", "delivered"})
     cancelled_df = df[cancelled_mask]
 
-    for _, row in cancelled_df.iterrows():
-        update_status(
-            order_id=str(row.iloc[1]),
-            status=str(row.iloc[0]),
-            platform="meesho",
-            where="new"
-        )
+    if not cancelled_df.empty:
+        bulk_update_status(cancelled_df, platform="meesho")
 
     # --- Pending Orders ---
     pending_mask = status_col.isin({"pending", "ready_to_ship"})
