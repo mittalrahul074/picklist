@@ -195,8 +195,8 @@ def render_navigation_sidebar() -> None:
             "5": set(PAGES.keys()), # Admin has access to all pages
         }
 
-        user_role = st.session_state.user_role
-        allowed_pages = sorted(ROLE_ACCESS.get(user_role, {"Dashboard"}))
+        user_type = st.session_state.user_type
+        allowed_pages = sorted(ROLE_ACCESS.get(user_type, {"Dashboard"}))
 
         selected_page = st.selectbox(
             "Navigate",
