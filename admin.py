@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-from utils import extract_order_data, export_orders_to_excel
+from utils import extract_order_data, export_orders_to_excel, get_party_filter_df
 from database import add_orders_to_db, get_orders_from_db, calculate_order_counts
 
 def render_admin_panel():
@@ -8,11 +8,7 @@ def render_admin_panel():
         st.session_state.orders_df = get_orders_from_db()
         df = st.session_state.orders_df
         party_filter = st.session_state.get("party_filter", "Both")
-        if party_filter == "Kangan":
-            #allow starting with K or L
-            df = df[df["sku"].str.startswith(("K", "L"))]
-        elif party_filter == "RS":
-            df = df[df["sku"].str.startswith("R")]
+        df = utils.get_party_filter_df(df, party_filter)
     
     """Render the admin panel for uploading Excel or CSV files"""
     st.header("Admin Panel - Order Upload")
