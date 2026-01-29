@@ -8,7 +8,7 @@ def render_admin_panel():
         st.session_state.orders_df = get_orders_from_db()
         df = st.session_state.orders_df
         party_filter = st.session_state.get("party_filter", "Both")
-        df = utils.get_party_filter_df(df, party_filter)
+        df = get_party_filter_df(df, party_filter)
     
     """Render the admin panel for uploading Excel or CSV files"""
     st.header("Admin Panel - Order Upload")
