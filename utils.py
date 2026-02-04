@@ -47,7 +47,7 @@ def get_party_filter_df(df: pd.DataFrame, party: str) -> pd.DataFrame:
         return df[sku_series.str.startswith(("K", "L"), na=False)]
 
     if party == "RS":
-        return df[sku_series.str.startswith("R", na=False)]
+        return df[~sku_series.str.startswith(("K", "L"), na=False)]
 
     return df
 
