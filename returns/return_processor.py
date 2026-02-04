@@ -7,8 +7,8 @@ def process_awb_list(awb_list, client, start_date, end_date, return_date,user_ro
     results = []
 
     for awb in awb_list:
-        #if awb had \ , / , | , - , & , = , # , ) , ( , ] , [ , { , } , ,<comma> ,characters, then skip
-        regex = r"[,<>\|\\\/\-\&\=\#\(\)\[\]\{\}]"
+        #if awb had \ , / , | , - , & , = , # , ) , ( , ] , [ , { , } , ,<comma> ,characters,<space> then skip
+        regex = r"[,<>\|\\\/\-\&\=\#\(\)\[\]\{\}\s]"
         if re.search(regex, awb):
             print(f"DEBUG: Skipping invalid AWB {awb} due to special characters")
             results.append((awb, "INVALID_AWB"))
