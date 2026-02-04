@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import utils
 import database
+from datetime import datetime, timedelta
 
 def render_search_panel():
     st.header("🔍 Search Orders")
@@ -43,6 +44,16 @@ def render_search_panel():
         picked_by_input = st.selectbox("Picked By", user_list)
         validated_by_input = st.selectbox("Validated By", user_list)
 
+    st.markdown("### 📅 Updated Date Filter")
+
+    col3, col4 = st.columns(2)
+
+    with col3:
+        updated_from = st.date_input("Updated From (optional)", value=None)
+
+    with col4:
+        updated_to = st.date_input("Updated To (optional)", value=None)
+
     st.markdown("---")
 
     # ---------- SEARCH ACTION ----------
@@ -77,6 +88,14 @@ def render_search_panel():
 
         if validated_by_input != "Any":
             query = query.where("validated_by", "==", validated_by_input)
+
+        if updated_from:
+            start_ts = datetime.combine(updated_from, datetime.min.time())
+            query = query.where("updated_at", ">=", start_ts)
+
+        if updated_to:
+            end_ts = datetime.combine(updated_to, datetime.max.time())
+            query = query.where("updated_at", "<=", end_ts)
 
         # ---------- EXECUTE QUERY ----------
         docs = list(query.stream())
