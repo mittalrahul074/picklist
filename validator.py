@@ -109,7 +109,11 @@ def render_validator_panel():
         with sku_col:
             img_url  = database.get_product_image_url(sku)
             st.subheader(f"{sl_no}. SKU: {sku}")
-            st.markdown(f"[{sku}]({img_url})", unsafe_allow_html=True)
+            # if img_url then show image with link, else just show SKU
+            if img_url:
+                st.markdown(f"[{sku}]({img_url})", unsafe_allow_html=True)
+            else:
+                st.write(sku)
             st.caption(f"Total Quantity: {total_qty}")
 
         with rmv_btn:
