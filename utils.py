@@ -249,27 +249,3 @@ def export_orders_to_excel():
         orders_df.to_excel(writer, index=False)
 
     return output.getvalue()
-
-
-# -------------------------------------------------------------------
-# UI HTML Card
-# -------------------------------------------------------------------
-def get_swipe_card_html(order_data: dict, action_type: str) -> str:
-    """
-    Generate swipe card HTML.
-    """
-    rows = "".join(
-        f"<tr><td>{r['date']}</td><td align='right'>{r['quantity']}</td></tr>"
-        for r in order_data.get("dispatch_date", [])
-    )
-
-    return f"""
-    <div class="swipe-card" data-sku="{order_data['sku']}">
-        <h3>SKU: {order_data['sku']}</h3>
-        <table width="100%">
-            <tr><th>Dispatch</th><th align="right">Qty</th></tr>
-            {rows}
-        </table>
-        <p align="right"><b>Total:</b> {order_data['total_quantity']}</p>
-    </div>
-    """
