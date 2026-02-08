@@ -195,6 +195,7 @@ def _render_sku_row(row: pd.Series, user: str) -> None:
     
     with col1:
         st.subheader(sku)
+        st.write(f"Order ID: `{order_id}`")
         quantity = int(row["quantity"])
         st.write(f"Pending Returns: **{quantity}**")    
     with col3:
