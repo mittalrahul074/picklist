@@ -117,7 +117,7 @@ def get_user_type(username):
             error_msg = f"❌ User {username} not found in Firestore for party lookup"
             print(error_msg)
             # st.error(error_msg)
-            return "Both"  # Default fallback
+            return 1  # Default fallback
             
         user_data = user_doc.to_dict()
         print(f"User data for party lookup: {list(user_data.keys()) if user_data else 'None'}")
@@ -126,13 +126,9 @@ def get_user_type(username):
         if not user_data or 'type' not in user_data:
             error_msg = f"❌ Type field not found for user {username}"
             print(error_msg)
-            # st.error(error_msg)
-            return "Both"  # Default fallback
+            return 1  # Default fallback
             
         value = user_data['type']
-        print(f"Party value for {username}: {value}")
-        # st.write(f"🔍 DEBUG: Party value for {username}: {party_value}")
-        
         return value
         
     except Exception as e:

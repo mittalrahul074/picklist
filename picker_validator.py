@@ -94,6 +94,23 @@ def cached_orders():
 def cached_group_orders(df, status):
     return get_orders_grouped_by_sku(df, status)
 
+def without_images_df(df):
+    without_images = []
+
+    for _, row in df.iterrows():
+        sku = row["sku"]
+
+        img_url = get_product_image_url(sku)
+
+        if img_url:
+            continue  # Skip rows with images
+        else:
+            without_images.append(row)
+
+    df_without = pd.DataFrame(without_images)
+
+    return df_without
+
 def render_picker_validator_panel(which_page):
     """Render the validator panel if which_page is 'validator', else picker panel"""
     if which_page == "validator":
@@ -115,6 +132,16 @@ def render_picker_validator_panel(which_page):
     df= st.session_state.orders_df
     party_filter = st.session_state.get("party_filter", "Both")
     df = utils.get_party_filter_df(df, party_filter)
+
+    # if admin then show img filter option
+    if st.session_state.get("user_type") == 5:
+        image_filter = st.selectbox(
+            "Filter by Image Availability",
+            ["All", "Without Images"]
+        )
+
+        if image_filter == "Without Images":
+            df = without_images_df(df)
 
     st.session_state.sku_groups = cached_group_orders(
         df,
