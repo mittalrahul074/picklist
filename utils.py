@@ -44,10 +44,10 @@ def get_party_filter_df(df: pd.DataFrame, party: str) -> pd.DataFrame:
     sku_series = df["sku"].astype(str)
 
     if party == "Kangan":
-        return df[sku_series.str.startswith(("K", "L"), na=False)]
+        return df[sku_series.str.startswith(("K", "L","RED BELT DROP"), na=False)]
 
     if party == "RS":
-        return df[~sku_series.str.startswith(("K", "L"), na=False)]
+        return df[~sku_series.str.startswith(("K", "L","RED BELT DROP"), na=False)]
 
     return df
 
