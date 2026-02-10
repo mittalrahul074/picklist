@@ -124,14 +124,14 @@ def render_picker_validator_panel(which_page):
     if "orders_df" not in st.session_state:
         st.session_state.orders_df = cached_orders()  # Fetch only once
     
-    unique_dispatch_dates = st.session_state.orders_df['dispatch_date'].unique()
-    selected_dispatch_date = st.selectbox("Filter by Dispatch Date", options=["All"] + list(unique_dispatch_dates))
-    if selected_dispatch_date != "All":
-        st.session_state.orders_df = st.session_state.orders_df[st.session_state.orders_df['dispatch_date'] == selected_dispatch_date]
-
     df= st.session_state.orders_df
     party_filter = st.session_state.get("party_filter", "Both")
     df = utils.get_party_filter_df(df, party_filter)
+
+    unique_dispatch_dates = df['dispatch_date'].unique()
+    selected_dispatch_date = st.selectbox("Filter by Dispatch Date", options=["All"] + list(unique_dispatch_dates))
+    if selected_dispatch_date != "All":
+        df = df[df['dispatch_date'] == selected_dispatch_date]
 
     # if admin then show img filter option
     if st.session_state.get("user_type") == 5:
