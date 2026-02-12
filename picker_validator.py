@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from utils import get_swipe_card_html,next_sku
-from database import get_orders_grouped_by_sku, update_orders_for_sku, calculate_order_counts,get_orders_from_db,get_product_image_url
+from database import get_orders_grouped_by_sku, update_orders_for_sku, calculate_order_counts,get_orders_from_db,get_product_image_url,out_of_stock
 import time
 from validator import render_validator_panel
 import utils
@@ -32,6 +32,12 @@ def get_page_info(page):
     else:
         st.error("Invalid page.")
         st.stop()
+
+def out_of_stock_button(sku,user):
+    """Confirm user wants to mark SKU as out of stock, then call out_of_stock function by popping up a confirmation dialog"""
+    print(f"DEBUG: out_of_stock_button called for SKU={sku} by user={user}")
+    out_of_stock(sku, user)
+    st.success(f"✅ SKU {sku} marked as Out of Stock")
 
 def pick_sku(page_info):
     """Mark the SKU as picked and move to next"""
@@ -192,6 +198,9 @@ def render_picker_validator_panel(which_page):
             st.rerun()
 
     st.button("Previous SKU ⬅️", key="previous_sku_button", use_container_width=True, on_click=lambda: st.session_state.update(current_index=max(0, st.session_state.current_index-1)))
+
+    #btn to mark out of stock a paticular sku
+    st.button("Mark SKU Out of Stock", key="out_of_stock_button", use_container_width=True, on_click=lambda: out_of_stock_button(sku, st.session_state.user_role))
 
     # Pick Quantity Adjustment
     st.markdown("---")
