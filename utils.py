@@ -217,23 +217,59 @@ def extract_order_data(file_buffer, platform: str) -> Optional[pd.DataFrame]:
         st.error("Failed to process file.")
         return None
 
-
-# -------------------------------------------------------------------
-# Export
-# -------------------------------------------------------------------
-def export_orders_to_excel() -> Optional[bytes]:
+def get_swipe_card_html(order_data, action_type):
     """
-    Export DB orders as Excel.
+    Generate HTML for a swipeable card showing dispatch-wise breakdown.
     """
-    orders_df = st.session_state.get("orders_df") or get_orders_from_db()
+    sku = order_data['sku']
+    total_quantity = order_data['total_quantity']
+    order_count = order_data.get('order_count', 1)
+    breakdown = order_data.get('dispatch_date', [])
 
+    if action_type == 'pick':
+        card_id = f"pick_card_{sku}"
+    else:
+        card_id = f"validate_card_{sku}"
+
+    # Build dispatch table rows
+    dispatch_table_rows = ""
+    for row in breakdown:
+        dispatch_table_rows += f"""<tr><td>{row['date']}</td><td style="text-align:right;">{row['quantity']}</td></tr>"""
+
+    # Final HTML
+    html = f"""<div class="swipe-card" id="{card_id}" data-sku="{sku}" style='
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+            user-select: text;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+         '><div class="card-content"><h3>SKU: {sku}</h3><table style="width:100%; margin: 10px 0; border-collapse: collapse;"><thead><tr><th style="text-align:left;">Dispatch Date</th><th style="text-align:right;">Quantity</th></tr></thead><tbody>{dispatch_table_rows}</tbody></table><p style="font-size: 1.3rem; text-align: right; margin-top: 8px;"><strong>Total Quantity:</strong> {total_quantity}</p></div></div>"""
+    return html
+
+def export_orders_to_excel():
+    if "orders_df" not in st.session_state:
+        st.session_state.orders_df = get_orders_from_db()
+    """
+    Export orders to Excel file for download
+    
+    Args:
+        db_path: Path to the database
+    
+    Returns:
+        Excel file as bytes or None if no orders exist
+    """
+    # Get latest orders from database
+    orders_df = st.session_state.orders_df
+    
     if orders_df.empty:
         return None
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         orders_df.to_excel(writer, index=False)
-
+        
     return output.getvalue()
 
 
