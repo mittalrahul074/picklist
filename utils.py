@@ -36,21 +36,42 @@ def next_sku() -> None:
 # -------------------------------------------------------------------
 def get_party_filter_df(df: pd.DataFrame, party: str) -> pd.DataFrame:
     """
-    Filter orders based on SKU prefix rules.
+    Filter orders based on SKU prefix rules with special overrides.
     """
+
     if "sku" not in df.columns:
         logger.warning("SKU column missing. Skipping party filter.")
         return df
 
-    sku_series = df["sku"].astype(str)
+    df = df.copy()
+
+    sku_series = df["sku"].astype(str).str.upper().str.strip()
+
+    # Special SKU rules
+    SPECIAL_KANGAN = ("RED BELT DROP",)
+    SPECIAL_RS = ("K_ROUND_JUNTARA_2STONE",)
+
+    # Default prefix rules
+    DEFAULT_KANGAN_PREFIX = ("K", "L")
+
+    # Build masks
+    special_kangan_mask = sku_series.str.startswith(SPECIAL_KANGAN, na=False)
+    special_rs_mask = sku_series.str.startswith(SPECIAL_RS, na=False)
+
+    default_kangan_mask = sku_series.str.startswith(DEFAULT_KANGAN_PREFIX, na=False)
+
+    # Final masks
+    kangan_mask = (default_kangan_mask | special_kangan_mask) & ~special_rs_mask
+    rs_mask = ~kangan_mask
 
     if party == "Kangan":
-        return df[sku_series.str.startswith(("K", "L","RED BELT DROP"), na=False)]
+        return df[kangan_mask]
 
-    if party == "RS":
-        return df[~sku_series.str.startswith(("K", "L","RED BELT DROP"), na=False)]
+    elif party == "RS":
+        return df[rs_mask]
 
     return df
+
 
 
 # -------------------------------------------------------------------
