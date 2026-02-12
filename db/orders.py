@@ -1,6 +1,7 @@
 """
 Order management functions for Firestore database
 """
+import re
 from db.firestore import get_db_connection
 from datetime import datetime, timedelta
 from firebase_admin import firestore
@@ -464,3 +465,28 @@ def calculate_order_counts():
         counts.setdefault(status, 0)
 
     return counts
+
+def make_safe_id(s):
+    if not s or pd.isna(s):
+        return None
+    return re.sub(r'[/#?[\]. ]+', '_', str(s).strip())
+
+def out_of_stock(sku, user):
+    """
+    store sku in out_of_stock collection with timestamp and user info
+    """
+    db = get_db_connection()
+    if db is None:
+        print("❌ DEBUG: Database connection failed in out_of_stock")
+        # st.error("❌ Database connection failed")
+        return
+
+    safe_sku = str(sku).strip().lower()
+    safe_id = make_safe_id(safe_sku)
+    out_of_stock_ref = db.collection("out_of_stock").document(safe_id   )
+
+    out_of_stock_ref.set({
+        "sku": sku,
+        "reported_by": user,
+        "updated_at": datetime.utcnow()
+    })

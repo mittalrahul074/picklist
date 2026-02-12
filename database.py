@@ -19,6 +19,7 @@ from db.orders import (
     get_product_image_url,
     update_orders_for_sku,
     calculate_order_counts,
+    out_of_stock,
 )
 
 # Return operations
@@ -60,6 +61,7 @@ __all__ = [
     "get_product_image_url",
     "update_orders_for_sku",
     "calculate_order_counts",
+    "out_of_stock",
     # Returns
     "get_returns_from_db",
     "enter_return_data",
