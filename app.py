@@ -12,6 +12,7 @@ from search import render_search_panel
 from return_scan import render_return_scan_panel
 from accept_returns import render_accept_returns_panel
 from cancelled_list import render_cancelled_list_panel
+from out_of_stock_list import render_out_of_stock_list_panel
 
 # -------------------------------------------------------------------
 # SUPPRESS WARNINGS (DEPENDENCY NOISE)
@@ -32,6 +33,7 @@ PAGE_SEARCH = "search"
 PAGE_RETURN_SCAN = "return_scan"
 PAGE_ACCEPT_RETURNS = "accept_returns"
 PAGE_CANCELLED_LIST = "cancelled_list"
+PAGE_OUT_OF_STOCK_LIST = "out_of_stock_list"
 PAGE_DELETE = "delete"
 
 # User types (document these clearly)
@@ -184,6 +186,7 @@ def render_navigation_sidebar() -> None:
             "Upload Return Scan": PAGE_RETURN_SCAN,
             "Accept Returns": PAGE_ACCEPT_RETURNS,
             "Cancelled List": PAGE_CANCELLED_LIST,
+            "Out of Stock List": PAGE_OUT_OF_STOCK_LIST,
             "Delete": PAGE_DELETE,
         }
 
@@ -191,7 +194,7 @@ def render_navigation_sidebar() -> None:
             1: {"Dashboard", "Pick Orders","Validate Orders"}, # Picker only
             2: {"Dashboard", "Validate Orders", "Search Orders"},
             3: {"Dashboard", "Pick Orders", "Validate Orders", "Search Orders","Accept Returns", "Cancelled List","Upload Orders", "Upload Return Scan"}, # Full access except Admin
-            4: {"Dashboard", "Pick Orders", "Validate Orders", "Search Orders","Accept Returns", "Cancelled List","Upload Orders", "Upload Return Scan", "Delete"}, # Full access except Admin
+            4: {"Dashboard", "Pick Orders", "Validate Orders", "Search Orders","Accept Returns", "Cancelled List","Upload Orders", "Upload Return Scan", "Delete", "Out of Stock List"}, # Full access except Admin
             5: set(PAGES.keys()), # Admin has access to all pages
         }
 
@@ -246,5 +249,7 @@ else:
         render_accept_returns_panel()
     elif page == PAGE_CANCELLED_LIST:
         render_cancelled_list_panel()
+    elif page == PAGE_OUT_OF_STOCK_LIST:
+        render_out_of_stock_list_panel()
     elif page == PAGE_DELETE:
         render_delete_panel()

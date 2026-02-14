@@ -43,6 +43,11 @@ from db.awb import (
     remove_pending_awb,
 )
 
+from db.out_of_stock import (
+    get_out_of_stock_from_db,
+    accept_out_of_stock,
+)
+
 __all__ = [
     # Firestore
     "get_db_connection",
@@ -74,4 +79,7 @@ __all__ = [
     "pending_awb",
     "pending_awbs_list",
     "remove_pending_awb",
+    # Out of Stock
+    "get_out_of_stock_from_db",
+    "accept_out_of_stock",
 ]

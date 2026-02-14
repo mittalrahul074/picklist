@@ -236,7 +236,6 @@ def export_orders_to_excel() -> Optional[bytes]:
 
     return output.getvalue()
 
-
 # -------------------------------------------------------------------
 # UI HTML Card
 # -------------------------------------------------------------------
@@ -259,8 +258,3 @@ def get_swipe_card_html(order_data: dict, action_type: str) -> str:
         <p align="right"><b>Total:</b> {order_data['total_quantity']}</p>
     </div>
     """
-
-def make_safe_id(s):
-    if not s or pd.isna(s):
-        return None
-    return re.sub(r'[/#?[\]. ]+', '_', str(s).strip())

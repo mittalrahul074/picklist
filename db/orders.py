@@ -487,6 +487,7 @@ def out_of_stock(sku, user):
 
     out_of_stock_ref.set({
         "sku": sku,
+        "status": 0,#0 need admin to take action 1 if admin taken action
         "reported_by": user,
         "updated_at": datetime.utcnow()
     })
