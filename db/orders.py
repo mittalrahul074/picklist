@@ -491,3 +491,14 @@ def out_of_stock(sku, user):
         "reported_by": user,
         "updated_at": datetime.utcnow()
     })
+    #add it to session state to show it in out of stock list without refreshing
+    if "out_of_stock_df" in st.session_state:
+        df = st.session_state.out_of_stock_df
+        new_row = pd.DataFrame([{
+            "safe_sku": safe_id,
+            "sku": sku,
+            "reported_by": user,
+            "status": 0,
+            "updated_at": datetime.utcnow()
+        }])
+        st.session_state.out_of_stock_df = pd.concat([df, new_row], ignore_index=True)

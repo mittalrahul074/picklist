@@ -285,7 +285,15 @@ def get_swipe_card_html(order_data: dict, action_type: str) -> str:
     )
 
     return f"""
-    <div class="swipe-card" data-sku="{order_data['sku']}">
+    <div class="swipe-card" data-sku="{order_data['sku']}" style='
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+            user-select: text;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+         '>
         <h3>SKU: {order_data['sku']}</h3>
         <table width="100%">
             <tr><th>Dispatch</th><th align="right">Qty</th></tr>
