@@ -125,29 +125,46 @@ def render_picker_validator_panel(which_page):
         return
     # Main Picker Panel
     page_info = get_page_info(which_page)
-    st.header(f"Order {page_info['page_head']}")
+    header_col1, header_col2 = st.columns([6, 1])
+
+    with header_col1:
+        st.title(f"📦 Order {page_info['page_head']}")
+    with header_col2:
+        show_filters = st.toggle("Show Filters", value=st.session_state.get("show_filters", False), key="show_filters_toggle")
+
+    st.divider()
 
     if "orders_df" not in st.session_state:
-        st.session_state.orders_df = cached_orders()  # Fetch only once
-    
+        with st.spinner("Loading orders..."):
+            st.session_state.orders_df = cached_orders()
+
+    #get orders picked_by is empty or null
     df= st.session_state.orders_df
+    df = df[df['picked_by'].isna() | (df['picked_by'] == "")]
     party_filter = st.session_state.get("party_filter", "Both")
     df = utils.get_party_filter_df(df, party_filter)
 
-    unique_dispatch_dates = df['dispatch_date'].unique()
-    selected_dispatch_date = st.selectbox("Filter by Dispatch Date", options=["All"] + list(unique_dispatch_dates))
-    if selected_dispatch_date != "All":
-        df = df[df['dispatch_date'] == selected_dispatch_date]
+    if show_filters:
+        unique_dispatch_dates = df['dispatch_date'].unique()
+        selected_dispatch_date = st.selectbox("Filter by Dispatch Date", options=["All"] + list(unique_dispatch_dates))
+        if selected_dispatch_date != "All":
+            df = df[df['dispatch_date'] == selected_dispatch_date]
 
-    # if admin then show img filter option
-    if st.session_state.get("user_type") == 5:
-        image_filter = st.selectbox(
-            "Filter by Image Availability",
-            ["All", "Without Images"]
-        )
+        if st.session_state.get("user_type") in [3, 4, 5]:  
+            unique_skus = df['sku'].unique()
+            selected_sku = st.selectbox("Filter by SKU", options=["All"] + list(unique_skus))
+            if selected_sku != "All":
+                df = df[df['sku'] == selected_sku]
 
-        if image_filter == "Without Images":
-            df = without_images_df(df)
+        # if admin then show img filter option
+        if st.session_state.get("user_type") == 5:
+            image_filter = st.selectbox(
+                "Filter by Image Availability",
+                ["All", "Without Images"]
+            )
+
+            if image_filter == "Without Images":
+                df = without_images_df(df)
 
     st.session_state.sku_groups = cached_group_orders(
         df,
