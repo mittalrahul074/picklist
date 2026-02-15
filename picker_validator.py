@@ -141,6 +141,7 @@ def render_picker_validator_panel(which_page):
     #get orders picked_by is empty or null
     df= st.session_state.orders_df
     df = df[df['picked_by'].isna() | (df['picked_by'] == "")]
+    df = df[df['validated_by'].isna() | (df['validated_by'] == "")]
     party_filter = st.session_state.get("party_filter", "Both")
     df = utils.get_party_filter_df(df, party_filter)
 
