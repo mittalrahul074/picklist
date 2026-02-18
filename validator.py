@@ -1,3 +1,4 @@
+import datetime
 import streamlit as st
 import pandas as pd
 import database
@@ -45,9 +46,21 @@ def pick_sku(page_info):
     time.sleep(0.5)  # UX delay
     # next_sku()  # Move to next SKU
 
+#create a btn when clicked calls for open_search_page_with_filters
+
 def render_validator_panel():
     page_info = get_page_info("validator")
-    st.header("Order Validation Panel")
+    cols = st.columns([3, 1])
+
+    with cols[0]:
+        st.header(f"🛠️ {page_info['page_head']} Panel")
+    with cols[1]:
+        #get validated list with updated from today and updated to tomorrow
+        today = datetime.date.today()
+        tomorrow = today + datetime.timedelta(days=1)
+        if st.button("🔍 Validated List", use_container_width=True):
+            utils.open_search_page_with_filters(status="validated",updated_from=today,updated_to=tomorrow)
+            st.rerun()
 
     if "orders_df" not in st.session_state:
         st.session_state.orders_df = get_orders_from_db()

@@ -109,6 +109,35 @@ def read_uploaded_file(file_buffer, platform: str) -> pd.DataFrame:
     return pd.read_excel(file_buffer, dtype=str, keep_default_na=False)
 
 
+def open_search_page_with_filters(
+    order_id=None,
+    sku=None,
+    status=None,
+    picked_by=None,
+    validated_by=None,
+    updated_from=None,
+    updated_to=None,
+):
+    """
+    Navigate to search page with prefilled filters
+    """
+
+    st.session_state.page = "search"
+
+    # store filters
+    st.session_state["search_prefill"] = {
+        "order_id": order_id,
+        "sku": sku,
+        "status": status,
+        "picked_by": picked_by,
+        "validated_by": validated_by,
+        "updated_from": updated_from,
+        "updated_to": updated_to,
+    }
+
+    st.rerun()
+
+
 # -------------------------------------------------------------------
 # Meesho Processing
 # -------------------------------------------------------------------
@@ -223,18 +252,14 @@ def get_swipe_card_html(order_data, action_type):
     """
     sku = order_data['sku']
     total_quantity = order_data['total_quantity']
-    order_count = order_data.get('order_count', 1)
     breakdown = order_data.get('dispatch_date', [])
-
-    if action_type == 'pick':
-        card_id = f"pick_card_{sku}"
-    else:
-        card_id = f"validate_card_{sku}"
+    card_id = f"{action_type}_card_{sku}"
 
     # Build dispatch table rows
-    dispatch_table_rows = ""
-    for row in breakdown:
-        dispatch_table_rows += f"""<tr><td>{row['date']}</td><td style="text-align:right;">{row['quantity']}</td></tr>"""
+    rows = "".join(
+        f"<tr><td>{r.get('date','')}</td><td style='text-align:right;'>{r.get('quantity',0)}</td></tr>"
+        for r in breakdown
+    )
 
     # Final HTML
     html = f"""<div class="swipe-card" id="{card_id}" data-sku="{sku}" style='
@@ -245,7 +270,7 @@ def get_swipe_card_html(order_data, action_type):
             user-select: text;
             -webkit-user-select: text;
             -moz-user-select: text;
-         '><div class="card-content"><h3>SKU: {sku}</h3><table style="width:100%; margin: 10px 0; border-collapse: collapse;"><thead><tr><th style="text-align:left;">Dispatch Date</th><th style="text-align:right;">Quantity</th></tr></thead><tbody>{dispatch_table_rows}</tbody></table><p style="font-size: 1.3rem; text-align: right; margin-top: 8px;"><strong>Total Quantity:</strong> {total_quantity}</p></div></div>"""
+         '><div class="card-content"><h3>SKU: {sku}</h3><table style="width:100%; margin: 10px 0; border-collapse: collapse;"><thead><tr><th style="text-align:left;">Dispatch Date</th><th style="text-align:right;">Quantity</th></tr></thead><tbody>{rows}</tbody></table><p style="font-size: 1.3rem; text-align: right; margin-top: 8px;"><strong>Total Quantity:</strong> {total_quantity}</p></div></div>"""
     return html
 
 def export_orders_to_excel():
@@ -271,11 +296,6 @@ def export_orders_to_excel():
         orders_df.to_excel(writer, index=False)
         
     return output.getvalue()
-
-# -------------------------------------------------------------------
-# UI HTML Card
-# -------------------------------------------------------------------
-def get_swipe_card_html(order_data: dict, action_type: str) -> str:
     """
     Generate swipe card HTML.
     """
