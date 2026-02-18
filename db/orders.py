@@ -88,7 +88,7 @@ def get_orders_from_db(status=None):
         # print(f"🔍 DEBUG: Querying orders from last 7 days (since {seven_days_ago})")
         time.sleep(0.5)  # slight delay for UX
         
-        query = orders_ref.where("created_at", ">=", seven_days_ago)
+        query = orders_ref.where("updated_at", ">=", seven_days_ago)
 
         # Apply status filter if provided
         if status:
@@ -269,20 +269,27 @@ def get_orders_grouped_by_sku(orders_df, status=None):
         print(f"Error in grouping orders: {str(e)}")
         raise
 
+#global cache
+_PRODUCT_IMG_CACHE = {}
 def get_product_image_url(sku):
     try:
+        sku_lower = sku.lower().strip()
+        if sku_lower in _PRODUCT_IMG_CACHE:
+            print(f"Cache hit for SKU {sku}")
+            return _PRODUCT_IMG_CACHE[sku_lower]
+        
         db = get_db_connection()
         if db is None:
             return None
-        
-        sku_lower = sku.lower().strip()
         products_ref = db.collection("products").where("sku", "==", sku_lower).limit(1)
         docs = list(products_ref.stream())
         
         if not docs:
             return None
-        
-        return docs[0].to_dict().get("img_url")
+        img_url = docs[0].to_dict().get("img_url")
+        _PRODUCT_IMG_CACHE[sku_lower] = img_url  # Cache the result
+        print(f"Cache miss for SKU {sku}. Fetched URL: {img_url}")
+        return img_url
     except Exception as e:
         print(f"Error fetching product image URL for SKU {sku}: {e}")
         return None
