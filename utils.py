@@ -174,7 +174,7 @@ def process_meesho_orders(df: pd.DataFrame) -> Optional[pd.DataFrame]:
         "quantity": pd.to_numeric(
             pending_df.iloc[:, 9], errors="coerce"
         ).fillna(1).astype(int),
-        "dispatch_date": pending_df.iloc[:, 2].apply(normalize_and_shift),
+        "dispatch_date": pending_df.iloc[:, 3].apply(normalize_and_shift),
         "status": "new"
     })
     print("print orders")
