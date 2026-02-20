@@ -149,6 +149,7 @@ def process_meesho_orders(df: pd.DataFrame) -> Optional[pd.DataFrame]:
         st.error("Invalid Meesho file format.")
         return None
 
+    print(df)
     status_col = df.iloc[:, 0].astype(str).str.lower().str.strip()
 
     # --- Cancelled / Shipped / Delivered ---
