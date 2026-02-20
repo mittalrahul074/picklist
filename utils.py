@@ -149,8 +149,6 @@ def process_meesho_orders(df: pd.DataFrame) -> Optional[pd.DataFrame]:
         st.error("Invalid Meesho file format.")
         return None
 
-    print("df printing")
-    print(df)
     status_col = df.iloc[:, 0].astype(str).str.lower().str.strip()
 
     # --- Cancelled / Shipped / Delivered ---
@@ -177,8 +175,6 @@ def process_meesho_orders(df: pd.DataFrame) -> Optional[pd.DataFrame]:
         "dispatch_date": pending_df.iloc[:, 3].apply(normalize_and_shift),
         "status": "new"
     })
-    print("print orders")
-    print(orders)
     return clean_orders_df(orders)
 
 
@@ -215,9 +211,6 @@ def clean_orders_df(df: pd.DataFrame) -> pd.DataFrame:
     df = df[~df["sku"].isin({"", "NAN"})]
     df["quantity"] = df["quantity"].astype(int)
 
-    print("df in clean")
-    print(df)
-
     if df.empty:
         st.warning("No valid orders after cleaning.")
         return pd.DataFrame(
@@ -237,8 +230,6 @@ def extract_order_data(file_buffer, platform: str) -> Optional[pd.DataFrame]:
     """
     try:
         df = read_uploaded_file(file_buffer, platform)
-        print("printing df via extract")
-        print(df)
         if platform == "meesho":
             return process_meesho_orders(df)
 
