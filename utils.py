@@ -177,7 +177,8 @@ def process_meesho_orders(df: pd.DataFrame) -> Optional[pd.DataFrame]:
         "dispatch_date": pending_df.iloc[:, 2].apply(normalize_and_shift),
         "status": "new"
     })
-
+    print("print orders")
+    print(orders)
     return clean_orders_df(orders)
 
 
@@ -213,6 +214,9 @@ def clean_orders_df(df: pd.DataFrame) -> pd.DataFrame:
     df.dropna(subset=["order_id", "sku", "dispatch_date"], inplace=True)
     df = df[~df["sku"].isin({"", "NAN"})]
     df["quantity"] = df["quantity"].astype(int)
+
+    print("df in clean")
+    print(df)
 
     if df.empty:
         st.warning("No valid orders after cleaning.")
