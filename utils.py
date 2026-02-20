@@ -145,7 +145,7 @@ def process_meesho_orders(df: pd.DataFrame) -> Optional[pd.DataFrame]:
     """
     Process Meesho order file.
     """
-    if df.shape[1] < 8:
+    if df.shape[1] < 12:
         st.error("Invalid Meesho file format.")
         return None
 
@@ -168,9 +168,9 @@ def process_meesho_orders(df: pd.DataFrame) -> Optional[pd.DataFrame]:
 
     orders = pd.DataFrame({
         "order_id": pending_df.iloc[:, 1].astype(str),
-        "sku": pending_df.iloc[:, 5].astype(str).str.upper().str.strip(),
+        "sku": pending_df.iloc[:, 7].astype(str).str.upper().str.strip(),
         "quantity": pd.to_numeric(
-            pending_df.iloc[:, 7], errors="coerce"
+            pending_df.iloc[:, 9], errors="coerce"
         ).fillna(1).astype(int),
         "dispatch_date": pending_df.iloc[:, 2].apply(normalize_and_shift),
         "status": "new"
