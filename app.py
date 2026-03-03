@@ -162,8 +162,8 @@ def render_navigation_sidebar() -> None:
         if allowed_party == "Both":
             selected_party = st.selectbox(
                 "Party",
-                ["Both", "RS", "Kangan"],
-                index=["Both", "RS", "Kangan"].index(st.session_state.party_filter),
+                ["Both", "RS", "Kangan","SM"],
+                index=["Both", "RS", "Kangan","SM"].index(st.session_state.party_filter),
             )
 
             if selected_party != st.session_state.party_filter:
