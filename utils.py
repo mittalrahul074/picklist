@@ -7,7 +7,7 @@ from typing import Optional
 import pandas as pd
 import streamlit as st
 
-from database import get_orders_from_db, update_status
+from database import get_orders_from_db, update_status, load_party_rules
 from db.orders import bulk_update_status
 
 # -------------------------------------------------------------------
@@ -42,35 +42,25 @@ def get_party_filter_df(df: pd.DataFrame, party: str) -> pd.DataFrame:
     if "sku" not in df.columns:
         logger.warning("SKU column missing. Skipping party filter.")
         return df
+    
+    party_rules = load_party_rules()
+    if party.upper() not in party_rules:
+        logger.warning(f"Party '{party}' not found in rules. Skipping party filter.")
+        return df
 
     df = df.copy()
 
     sku_series = df["sku"].astype(str).str.upper().str.strip()
 
-    # Special SKU rules
-    SPECIAL_KANGAN = ("RED BELT DROP",)
-    SPECIAL_RS = ("K_ROUND_JUNTARA_2STONE",)
+    rules = party_rules[party.upper()]
 
-    # Default prefix rules
-    DEFAULT_KANGAN_PREFIX = ("K", "L")
+    prefix_mask = sku_series.str.startswith(rules["prefix"], na=False)
+    include_mask = sku_series.str.startswith(rules["special_include"], na=False)
+    exclude_mask = sku_series.str.startswith(rules["special_exclude"], na=False)
 
-    # Build masks
-    special_kangan_mask = sku_series.str.startswith(SPECIAL_KANGAN, na=False)
-    special_rs_mask = sku_series.str.startswith(SPECIAL_RS, na=False)
+    final_mask = (prefix_mask | include_mask) & ~exclude_mask
 
-    default_kangan_mask = sku_series.str.startswith(DEFAULT_KANGAN_PREFIX, na=False)
-
-    # Final masks
-    kangan_mask = (default_kangan_mask | special_kangan_mask) & ~special_rs_mask
-    rs_mask = ~kangan_mask
-
-    if party == "Kangan":
-        return df[kangan_mask]
-
-    elif party == "RS":
-        return df[rs_mask]
-
-    return df
+    return df[final_mask]
 
 
 

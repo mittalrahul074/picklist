@@ -83,6 +83,8 @@ def get_party(username):
             result = "Kangan"
         elif party_value == 2:
             result = "RS"
+        elif party_value == 4:
+            result = "SM"
         elif party_value == 3:
             result = "Both"
         else:
@@ -174,3 +176,21 @@ def get_user_productivity():
         productivity_df[col] = productivity_df[col].astype(int)
 
     return productivity_df
+
+def load_party_rules():
+    db = get_db_connection()
+    docs = db.collection("party_rules").stream()
+
+    rules = {}
+    for doc in docs:
+        data = doc.to_dict()
+
+        party_name = data.get("party_name")
+
+        rules[party_name] = {
+            "prefix": tuple(data.get("prefix", [])),
+            "special_include": tuple(data.get("special_include", [])),
+            "special_exclude": tuple(data.get("special_exclude", [])),
+        }
+
+    return rules
