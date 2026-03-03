@@ -7,7 +7,7 @@ This module consolidates imports from db submodules organized by entity type.
 from db.firestore import get_db_connection, init_database
 
 # User operations
-from db.users import get_pass, get_party, get_user_type, get_user_productivity, load_party_rules
+from db.users import get_pass, get_party, get_user_type, get_user_productivity, load_party_rules,update_sku_party
 
 # Order operations
 from db.orders import (
@@ -58,6 +58,7 @@ __all__ = [
     "get_user_type",
     "get_user_productivity",
     "load_party_rules",
+    "update_sku_party",
     # Orders
     "add_orders_to_db",
     "get_orders_from_db",
