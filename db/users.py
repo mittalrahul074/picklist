@@ -220,17 +220,22 @@ def update_sku_party(sku, old_party, new_party):
         # normalize party names to match stored `party_name` values
         old_party = str(old_party).upper()
         new_party = str(new_party).upper()
+        skipped_old_party = False
+        #if old_party is both, then skip all operation realted to old_party
+        if old_party == "BOTH":
+            skipped_old_party = True
 
         # update the sku in the party_rules collection
         party_rules_ref = db.collection("party_rules")
 
-        old_party_docs = party_rules_ref.where("party_name", "==", old_party).limit(1).get()
-        if not old_party_docs:
-            error_msg = f"❌ Old party {old_party} not found in party_rules collection"
-            print(error_msg)
-            return False
-        old_doc_snapshot = old_party_docs[0]
-        old_doc_ref = old_doc_snapshot.reference
+        if not skipped_old_party:
+            old_party_docs = party_rules_ref.where("party_name", "==", old_party).limit(1).get()
+            if not old_party_docs:
+                error_msg = f"❌ Old party {old_party} not found in party_rules collection"
+                print(error_msg)
+                return False
+            old_doc_snapshot = old_party_docs[0]
+            old_doc_ref = old_doc_snapshot.reference
 
         new_party_docs = party_rules_ref.where("party_name", "==", new_party).limit(1).get()
         if not new_party_docs:
@@ -241,7 +246,8 @@ def update_sku_party(sku, old_party, new_party):
         new_doc_ref = new_doc_snapshot.reference
 
         #try to remove sku from special_include of old party and remove sku from special_exclude of new party
-        old_doc_ref.update({"special_include": gcf.ArrayRemove([sku])})
+        if not skipped_old_party:
+            old_doc_ref.update({"special_include": gcf.ArrayRemove([sku])})
         new_doc_ref.update({"special_exclude": gcf.ArrayRemove([sku])})
 
         #if the sku already follows the party rules after the above operation, then we can skip adding it to the new party's special_include and old party's special_exclude
@@ -251,7 +257,8 @@ def update_sku_party(sku, old_party, new_party):
             return True
 
         # add sku to special_include of new party and add sku to special_exclude of old party
-        old_doc_ref.update({"special_exclude": gcf.ArrayUnion([sku])})
+        if not skipped_old_party:
+            old_doc_ref.update({"special_exclude": gcf.ArrayUnion([sku])})
         new_doc_ref.update({"special_include": gcf.ArrayUnion([sku])})
         print(f"✅ SKU {sku} moved from {old_party} to {new_party} successfully")
         return True
