@@ -259,23 +259,20 @@ def render_picker_validator_panel(which_page):
 
     #only for admin show option to change default sku party
     if st.session_state.get("user_type") in [4, 5]:
-        #if both party is then force admin to select party for this sku
-        if st.session_state.get("party_filter", "Both") == "Both":
-            st.warning(f"⚠️ You are currently viewing SKUs for both parties. Please select a party filter to change default party for SKU {sku}.")
-        else:
-            st.markdown("---")
-            st.subheader("Admin Options")
-            st.info("Change default party for this SKU (use with caution)")
+        
+        st.markdown("---")
+        st.subheader("Admin Options")
+        st.info("Change default party for this SKU (use with caution)")
 
-            party_options = ["Select","Kangan", "RS","SM"]
-            #remove option which is currently selected
-            current_party = st.session_state.get("party_filter", "Both")
-            party_options = [p for p in party_options if p != current_party]
-            selected_party = st.selectbox("Select Party", options=party_options)
+        party_options = ["Select","Kangan", "RS","SM"]
+        #remove option which is currently selected
+        current_party = st.session_state.get("party_filter", "Both")
+        party_options = [p for p in party_options if p != current_party]
+        selected_party = st.selectbox("Select Party", options=party_options)
 
-            if selected_party != "Select":
-                if st.button("Update Default Party for SKU", use_container_width=True):
-                    database.update_sku_party(sku, current_party, selected_party)
-                    st.success(f"✅ Default party for SKU {sku} updated to {selected_party}")
-                    # rerun the data
-                    st.rerun()
+        if selected_party != "Select":
+            if st.button("Update Default Party for SKU", use_container_width=True):
+                database.update_sku_party(sku, current_party, selected_party)
+                st.success(f"✅ Default party for SKU {sku} updated to {selected_party}")
+                # rerun the data
+                st.rerun()
