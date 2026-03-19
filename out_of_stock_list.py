@@ -17,7 +17,7 @@ from database import (
     accept_returns_by_sku,
     get_out_of_stock_from_db
 )
-from db.out_of_stock import accept_out_of_stock
+from db.out_of_stock import accept_out_of_stock, delete_out_of_stock
 import utils
 
 # -------------------------------------------------------------------
@@ -28,6 +28,7 @@ SESSION_KEY_OUT_OF_STOCK_DF = "out_of_stock_df"
 SESSION_KEY_FORCE_RELOAD = "force_reload_out_of_stock_list"
 
 FIRESTORE_CONSISTENCY_DELAY = 0.8  # seconds
+party_filter = st.session_state.get("party_filter")
 
 
 # -------------------------------------------------------------------
@@ -92,6 +93,15 @@ def _process_out_of_stock_acceptance(
     Returns:
         Tuple of (processed_quantity, processed_ids)
     """
+    if new_status == 2:
+        delete_out_of_stock(sku)
+        # clear session state to force fresh reload in UI layer
+        st.session_state.pop(SESSION_KEY_OUT_OF_STOCK_DF, None)
+        if party_filter:
+            out_of_stock_df = utils.get_party_filter_df(_load_out_of_stock_data(),party_filter)
+        else:
+            out_of_stock_df = _load_out_of_stock_data()
+        return 0, []
     # Clear cached data before processing to ensure consistency
     st.session_state.pop(SESSION_KEY_OUT_OF_STOCK_DF, None)
     
@@ -149,7 +159,6 @@ def render_out_of_stock_list_panel() -> None:
     - Renders the UI with acceptance controls
     - Handles user interactions
     """
-    party_filter = st.session_state.get("party_filter")
         
     st.header("📦 Out of Stock List")
     
@@ -198,3 +207,11 @@ def _render_sku_row(row: pd.Series, user: str) -> None:
                 user=user
             )
             _handle_acceptance_result(sku, processed_qty, processed_ids)
+
+        if st.button("❌ Reject", key=f"reject_{safe_sku}", use_container_width=True):
+            processed_qty, processed_ids = _process_out_of_stock_acceptance(
+                safe_sku=safe_sku,
+                sku = sku,
+                new_status=2,
+                user=user
+            )

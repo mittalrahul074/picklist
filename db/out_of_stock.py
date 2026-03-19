@@ -110,3 +110,29 @@ def accept_out_of_stock(safe_sku,sku, new_status, user):
     except Exception as ex:
         print(f"❌ Transaction failed for safe_sku {safe_sku}: {str(ex)}")
         raise
+
+def delete_out_of_stock(safe_sku):
+    """Delete an out of stock item from Firestore"""
+    db = get_db_connection()
+    if db is None:
+        print("❌ Database connection failed in delete_out_of_stock")
+        return
+
+    try:
+        out_of_stock_query = (
+            db.collection("out_of_stock")
+            .where("sku", "==", safe_sku)
+            .where("status", "==", 0)
+            .limit(1)
+        )
+        docs = list(out_of_stock_query.stream())
+        if not docs:
+            print(f"⚠️ No pending out of stock items found for safe_sku: {safe_sku} to delete")
+            return
+        
+        doc_ref = docs[0].reference
+        doc_ref.delete()
+        print(f"✅ Successfully deleted out of stock item with safe_sku {safe_sku}")
+    except Exception as e:
+        print(f"❌ Error deleting out of stock item with safe_sku {safe_sku}: {e}")
+        raise
