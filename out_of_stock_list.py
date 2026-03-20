@@ -29,6 +29,7 @@ SESSION_KEY_FORCE_RELOAD = "force_reload_out_of_stock_list"
 
 FIRESTORE_CONSISTENCY_DELAY = 0.8  # seconds
 party_filter = st.session_state.get("party_filter")
+user_type = st.session_state.get("user_type")
 
 
 # -------------------------------------------------------------------
@@ -98,9 +99,9 @@ def _process_out_of_stock_acceptance(
         # clear session state to force fresh reload in UI layer
         st.session_state.pop(SESSION_KEY_OUT_OF_STOCK_DF, None)
         if party_filter:
-            out_of_stock_df = utils.get_party_filter_df(_load_out_of_stock_data(),party_filter)
+            out_of_stock_df = utils.get_party_filter_df(_load_out_of_stock_data(user_type),party_filter)
         else:
-            out_of_stock_df = _load_out_of_stock_data()
+            out_of_stock_df = _load_out_of_stock_data(user_type)
         return 0, []
     # Clear cached data before processing to ensure consistency
     st.session_state.pop(SESSION_KEY_OUT_OF_STOCK_DF, None)
@@ -161,7 +162,6 @@ def render_out_of_stock_list_panel() -> None:
     """
         
     st.header("📦 Out of Stock List")
-    user_type = st.session_state.get("user_type")
     
     # Load and filter cancelled data
     if party_filter:
