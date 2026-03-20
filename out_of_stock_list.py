@@ -42,7 +42,7 @@ PageInfo = Dict[str, str]
 # -------------------------------------------------------------------
 
 
-def _load_out_of_stock_data() -> pd.DataFrame:
+def _load_out_of_stock_data(user_type: int) -> pd.DataFrame:
     """
     Load out of stock data from the database with proper session state management.
     Handles force reload scenarios for data consistency.
@@ -58,7 +58,7 @@ def _load_out_of_stock_data() -> pd.DataFrame:
 
     if SESSION_KEY_OUT_OF_STOCK_DF not in st.session_state:
         print("📥 Loading out of stock data from DB for the first time")
-        st.session_state[SESSION_KEY_OUT_OF_STOCK_DF] = get_out_of_stock_from_db()
+        st.session_state[SESSION_KEY_OUT_OF_STOCK_DF] = get_out_of_stock_from_db(user_type)
 
     print(f"📝 DEBUG: Loaded out of stock returns into session state")
     print(f"📝 DEBUG: {st.session_state[SESSION_KEY_OUT_OF_STOCK_DF]}")
@@ -161,12 +161,13 @@ def render_out_of_stock_list_panel() -> None:
     """
         
     st.header("📦 Out of Stock List")
+    user_type = st.session_state.get("user_type")
     
     # Load and filter cancelled data
     if party_filter:
-        out_of_stock_df = utils.get_party_filter_df(_load_out_of_stock_data(),party_filter)
+        out_of_stock_df = utils.get_party_filter_df(_load_out_of_stock_data(user_type),party_filter)
     else:
-        out_of_stock_df = _load_out_of_stock_data()
+        out_of_stock_df = _load_out_of_stock_data(user_type)
     print(f"📝 DEBUG: Loaded {len(out_of_stock_df)} out of stock returns from DB")
     # Early return if no pending returns
     if out_of_stock_df.empty:
@@ -197,21 +198,26 @@ def _render_sku_row(row: pd.Series, user: str) -> None:
     with col1:
         st.subheader(sku)
     with col3:
-        safe_sku = str(row["safe_sku"])
-        button_key = f"accept_{safe_sku}"
-        if st.button("✅ Accept", key=button_key, use_container_width=True):
-            processed_qty, processed_ids = _process_out_of_stock_acceptance(
-                safe_sku=safe_sku,
-                sku = sku,
-                new_status=1,
-                user=user
-            )
-            _handle_acceptance_result(sku, processed_qty, processed_ids)
+        if user_type == 2:
+            #dont show accept and reject button for super admin
+            st.write("Reported by:")
+            st.write(row["reported_by"])
+        else:
+            safe_sku = str(row["safe_sku"])
+            button_key = f"accept_{safe_sku}"
+            if st.button("✅ Accept", key=button_key, use_container_width=True):
+                processed_qty, processed_ids = _process_out_of_stock_acceptance(
+                    safe_sku=safe_sku,
+                    sku = sku,
+                    new_status=1,
+                    user=user
+                )
+                _handle_acceptance_result(sku, processed_qty, processed_ids)
 
-        if st.button("❌ Reject", key=f"reject_{safe_sku}", use_container_width=True):
-            processed_qty, processed_ids = _process_out_of_stock_acceptance(
-                safe_sku=safe_sku,
-                sku = sku,
-                new_status=2,
-                user=user
-            )
+            if st.button("❌ Reject", key=f"reject_{safe_sku}", use_container_width=True):
+                processed_qty, processed_ids = _process_out_of_stock_acceptance(
+                    safe_sku=safe_sku,
+                    sku = sku,
+                    new_status=2,
+                    user=user
+                )
