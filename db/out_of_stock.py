@@ -9,7 +9,7 @@ from db.orders import get_order_details
 import time
 
 
-def get_out_of_stock_from_db():
+def get_out_of_stock_from_db(user_type: int) -> pd.DataFrame:
     """Fetch out of stock orders from Firestore"""
     db = get_db_connection()
     if db is None:
@@ -24,7 +24,10 @@ def get_out_of_stock_from_db():
     try:
         time.sleep(0.1)  # slight delay for UX
         #where status == 0
-        query = out_of_stock_ref.where("status", "==", 0)
+        if user_type == 2:
+            query = out_of_stock_ref.where("status", "==", 1)
+        else:
+            query = out_of_stock_ref.where("status", "==", 0)
         docs = list(query.stream())
         print(f"✅ DEBUG: Found {len(docs)} out of stock orders from Firestore")
         time.sleep(0.1)  # slight delay for UX
