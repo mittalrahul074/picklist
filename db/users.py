@@ -132,6 +132,7 @@ def get_user_type(username):
             return 1  # Default fallback
             
         value = user_data['type']
+        print(f"User type value for {username}: {value}")
         return value
         
     except Exception as e:

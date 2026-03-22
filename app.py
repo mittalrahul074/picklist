@@ -250,6 +250,6 @@ else:
     elif page == PAGE_CANCELLED_LIST:
         render_cancelled_list_panel()
     elif page == PAGE_OUT_OF_STOCK_LIST:
-        render_out_of_stock_list_panel()
+        render_out_of_stock_list_panel(st.session_state.user_type)
     elif page == PAGE_DELETE:
         render_delete_panel()

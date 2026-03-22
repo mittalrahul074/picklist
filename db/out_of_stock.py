@@ -11,6 +11,7 @@ import time
 
 def get_out_of_stock_from_db(user_type: int) -> pd.DataFrame:
     """Fetch out of stock orders from Firestore"""
+    print(f"🚀 DEBUG: Fetching out of stock orders from Firestore for user_type={user_type}")
     db = get_db_connection()
     if db is None:
         error_msg = "❌ Database connection failed in get_out_of_stock_from_db"
@@ -24,10 +25,14 @@ def get_out_of_stock_from_db(user_type: int) -> pd.DataFrame:
     try:
         time.sleep(0.1)  # slight delay for UX
         #where status == 0
-        if user_type == 2:
-            query = out_of_stock_ref.where("status", "==", 1)
-        else:
-            query = out_of_stock_ref.where("status", "==", 0)
+        if user_type == 2 or user_type == "2":
+            print("🚀 DEBUG: Fetching out of stock orders with empty pending_platforms (admin view)")
+            # get list where pending_platforms array is empty
+            query = out_of_stock_ref.where("pending_platforms", "==", [])
+        if user_type in [1,3, 4, 5]:
+            print("🚀 DEBUG: Fetching out of stock orders with non-empty pending_platforms (user view)")
+            # get list where pending_platforms array is not empty
+            query = out_of_stock_ref.where("pending_platforms", "!=", []).where("status", "==", 0)
         docs = list(query.stream())
         print(f"✅ DEBUG: Found {len(docs)} out of stock orders from Firestore")
         time.sleep(0.1)  # slight delay for UX
@@ -41,7 +46,9 @@ def get_out_of_stock_from_db(user_type: int) -> pd.DataFrame:
                 "sku": data.get("sku"),
                 "reported_by" : data.get("reported_by"),
                 "status": data.get("status"),
-                "updated_at": data.get("updated_at")
+                "updated_at": data.get("updated_at"),
+                "pending_platforms": data.get("pending_platforms", []),
+                "done_platforms": data.get("done_platforms", [])
             })
 
         df = pd.DataFrame(out_of_stock_list) if out_of_stock_list else pd.DataFrame()
@@ -57,7 +64,7 @@ def get_out_of_stock_from_db(user_type: int) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-def accept_out_of_stock(safe_sku,sku, new_status, user):
+def accept_out_of_stock(safe_sku,sku, new_status, user,platform):
     """Accept an out of stock order with transactional safety"""
     db = get_db_connection()
     if db is None:
@@ -87,10 +94,17 @@ def accept_out_of_stock(safe_sku,sku, new_status, user):
 
         out_of_stock_ref = out_of_stock_list[0].reference
         update_fields = {
-            "status": 1,
+            "pending_platforms": firestore.ArrayRemove([platform]),
+            "done_platforms": firestore.ArrayUnion([platform]),
             "marked_by": user,
             "updated_at": firestore.SERVER_TIMESTAMP
         }
+
+        #update status to 1 if pending_platforms array is empty after removing the platform name from it
+        out_of_stock_data = out_of_stock_list[0].to_dict() or {}
+        pending_platforms = out_of_stock_data.get("pending_platforms", [])
+        if len(pending_platforms) == 1 and platform in pending_platforms:
+            update_fields["status"] = 1
 
         if user:
             print(f"📝 DEBUG: Adding user '{user}' to update fields")
