@@ -71,6 +71,12 @@ def logout_user():
     st.session_state.update({
         "authenticated": False,
         "user_role": None,
+        "user_type": None,
         "party_filter": None,
         "page": "dashboard"
     })
+    
+    #delete all session state reated to anything
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+

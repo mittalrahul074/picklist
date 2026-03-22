@@ -496,6 +496,8 @@ def out_of_stock(sku, user):
         "sku": sku,
         "status": 0,#0 need admin to take action 1 if admin taken action
         "reported_by": user,
+        "pending_platforms": ["meesho", "flipkart"], # by default both platforms will be pending, when admin will take action on one platform then it will be removed from this array and added to done_platforms array
+        "done_platforms": [],
         "updated_at": datetime.utcnow()
     })
     #add it to session state to show it in out of stock list without refreshing
@@ -506,6 +508,8 @@ def out_of_stock(sku, user):
             "sku": sku,
             "reported_by": user,
             "status": 0,
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.utcnow(),
+            "pending_platforms": ["meesho", "flipkart"],
+            "done_platforms": []
         }])
         st.session_state.out_of_stock_df = pd.concat([df, new_row], ignore_index=True)

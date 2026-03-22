@@ -8,6 +8,8 @@ Author: Order Management System Team
 """
 
 from typing import Dict, Optional, Tuple, List
+from auth import logout_user
+from db.orders import get_product_image_url
 import streamlit as st
 import pandas as pd
 import time
@@ -29,8 +31,6 @@ SESSION_KEY_FORCE_RELOAD = "force_reload_out_of_stock_list"
 
 FIRESTORE_CONSISTENCY_DELAY = 0.8  # seconds
 party_filter = st.session_state.get("party_filter")
-user_type = st.session_state.get("user_type")
-
 
 # -------------------------------------------------------------------
 # Type Definitions
@@ -79,7 +79,9 @@ def _process_out_of_stock_acceptance(
     safe_sku: str,
     sku: str,
     new_status: str,
-    user: str
+    user: str,
+    platform: str,
+    user_type: int
 ) -> Tuple[int, List[str]]:
     """
     Process the acceptance of out of stock items for a specific SKU.
@@ -88,6 +90,7 @@ def _process_out_of_stock_acceptance(
         safe_sku: The safe SKU identifier
         new_status: The new status value to set
         user: The user performing the action
+        platform: The platform for which to accept the items (e.g. "meesho", "flipkart")
         new_status: The status to set after acceptance
         user: The user performing the action
     
@@ -111,7 +114,8 @@ def _process_out_of_stock_acceptance(
             safe_sku=safe_sku,
             sku=sku,
             new_status=new_status,
-            user=user
+            user=user,
+            platform=platform
         )
         return processed_qty, processed_ids
     except Exception as e:
@@ -149,7 +153,7 @@ def _handle_acceptance_result(
 # -------------------------------------------------------------------
 # Main Rendering Function
 # -------------------------------------------------------------------
-def render_out_of_stock_list_panel() -> None:
+def render_out_of_stock_list_panel(user_type: int) -> None:
     """
     Render the main out of stock list panel interface.
     
@@ -160,7 +164,12 @@ def render_out_of_stock_list_panel() -> None:
     - Renders the UI with acceptance controls
     - Handles user interactions
     """
-        
+    if user_type is None:
+        st.error("User type not found. Please log in again.")
+        print("❌ User type is missing in session state. Logging out for safety.")
+        logout_user()
+        st.rerun()
+
     st.header("📦 Out of Stock List")
     
     # Load and filter cancelled data
@@ -181,20 +190,26 @@ def render_out_of_stock_list_panel() -> None:
     
     # Render each SKU group
     for _, row in out_of_stock_df.iterrows():
-        _render_sku_row(row, st.session_state.user_role)
+        _render_sku_row(row, st.session_state.user_role, user_type)
         st.divider()
 
 
-def _render_sku_row(row: pd.Series, user: str) -> None:
+def _render_sku_row(row: pd.Series, user: str, user_type: int) -> None:
     """
     Render a single SKU row with acceptance controls.
     
     Args:
         row: Pandas Series containing SKU data
         user: Current user identifier
+        user_type: The type of the current user
     """
     sku = str(row["sku"])    
-    col1, col3 = st.columns([5, 2])    
+    col1, col3 = st.columns([5, 2])   
+    # view image link if available
+    if get_product_image_url(sku):
+        with col1:
+            # link to view image in new tab
+            st.markdown(f"[🖼️ View Image]({get_product_image_url(sku)})")
     with col1:
         st.subheader(sku)
     with col3:
@@ -205,19 +220,36 @@ def _render_sku_row(row: pd.Series, user: str) -> None:
         else:
             safe_sku = str(row["safe_sku"])
             button_key = f"accept_{safe_sku}"
-            if st.button("✅ Accept", key=button_key, use_container_width=True):
-                processed_qty, processed_ids = _process_out_of_stock_acceptance(
-                    safe_sku=safe_sku,
-                    sku = sku,
-                    new_status=1,
-                    user=user
-                )
-                _handle_acceptance_result(sku, processed_qty, processed_ids)
+            if row["pending_platforms"] and "meesho" in row["pending_platforms"]:
+                if st.button("✅Meesho Accept", key="m_" + button_key, use_container_width=True):
+                    processed_qty, processed_ids = _process_out_of_stock_acceptance(
+                        safe_sku=safe_sku,
+                        sku = sku,
+                        new_status=1,
+                        user=user,
+                        platform="meesho",
+                        user_type=user_type
+                    )
+                    _handle_acceptance_result(sku, processed_qty, processed_ids)
+
+            if row["pending_platforms"] and "flipkart" in row["pending_platforms"]:
+                if st.button("✅ Flipkart Accept", key="f_" + button_key, use_container_width=True):
+                    processed_qty, processed_ids = _process_out_of_stock_acceptance(
+                        safe_sku=safe_sku,
+                        sku = sku,
+                        new_status=1,
+                        user=user,
+                        platform="flipkart",
+                        user_type=user_type
+                    )
+                    _handle_acceptance_result(sku, processed_qty, processed_ids)
 
             if st.button("❌ Reject", key=f"reject_{safe_sku}", use_container_width=True):
                 processed_qty, processed_ids = _process_out_of_stock_acceptance(
                     safe_sku=safe_sku,
                     sku = sku,
                     new_status=2,
-                    user=user
+                    user=user,
+                    platform="",  # platform is not needed for rejection since it will delete the document
+                    user_type=user_type
                 )
