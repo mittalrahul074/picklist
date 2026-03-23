@@ -89,8 +89,8 @@ def _render_order_edit_form(order_data, orders_ref, idx):
         with col1:
             new_status = st.selectbox(
                 "Status",
-                options=["new", "picked", "validated", "cancelled", "wrong"],
-                index=["new", "picked", "validated", "cancelled", "wrong"].index(order_data.get("status", "new")),
+                options=["new", "picked", "validated", "cancelled", "wrong","shipped"],
+                index=["new", "picked", "validated", "cancelled", "wrong","shipped"].index(order_data.get("status", "new")),
                 key=f"status_{order_id}_{idx}"
             )
 
