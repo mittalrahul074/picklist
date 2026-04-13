@@ -13,6 +13,7 @@ from return_scan import render_return_scan_panel
 from accept_returns import render_accept_returns_panel
 from cancelled_list import render_cancelled_list_panel
 from out_of_stock_list import render_out_of_stock_list_panel
+from product_lookup import render_product_lookup_panel
 
 # -------------------------------------------------------------------
 # SUPPRESS WARNINGS (DEPENDENCY NOISE)
@@ -35,6 +36,7 @@ PAGE_ACCEPT_RETURNS = "accept_returns"
 PAGE_CANCELLED_LIST = "cancelled_list"
 PAGE_OUT_OF_STOCK_LIST = "out_of_stock_list"
 PAGE_DELETE = "delete"
+LOOKUP = "lookup"
 
 # User types (document these clearly)
 USER_PICKER_ONLY = 1
@@ -187,14 +189,15 @@ def render_navigation_sidebar() -> None:
             "Accept Returns": PAGE_ACCEPT_RETURNS,
             "Cancelled List": PAGE_CANCELLED_LIST,
             "Out of Stock List": PAGE_OUT_OF_STOCK_LIST,
+            "LOOKUP": LOOKUP,
             "Delete": PAGE_DELETE,
         }
 
         ROLE_ACCESS = {
-            1: {"Dashboard", "Pick Orders","Validate Orders"}, # Picker only
-            2: {"Dashboard", "Validate Orders", "Search Orders", "Out of Stock List"},
-            3: {"Dashboard", "Pick Orders", "Validate Orders", "Search Orders","Accept Returns", "Cancelled List","Upload Orders", "Upload Return Scan"}, # Full access except Admin
-            4: {"Dashboard", "Pick Orders", "Validate Orders", "Search Orders","Accept Returns", "Cancelled List","Upload Orders", "Upload Return Scan", "Delete", "Out of Stock List"}, # Full access except Admin
+            1: {"Dashboard", "Pick Orders","Validate Orders", "LOOKUP"}, # Picker only
+            2: {"Dashboard", "Validate Orders", "Search Orders", "Out of Stock List", "LOOKUP"}, # Returns access only
+            3: {"Dashboard", "Pick Orders", "Validate Orders", "Search Orders","Accept Returns", "Cancelled List","Upload Orders", "Upload Return Scan", "LOOKUP"}, # Full access except Admin
+            4: {"Dashboard", "Pick Orders", "Validate Orders", "Search Orders","Accept Returns", "Cancelled List","Upload Orders", "Upload Return Scan", "Delete", "Out of Stock List", "LOOKUP"}, # Full access except Admin
             5: set(PAGES.keys()), # Admin has access to all pages
         }
 
@@ -251,5 +254,7 @@ else:
         render_cancelled_list_panel()
     elif page == PAGE_OUT_OF_STOCK_LIST:
         render_out_of_stock_list_panel(st.session_state.user_type)
+    elif page == LOOKUP:
+        render_product_lookup_panel()
     elif page == PAGE_DELETE:
         render_delete_panel()
